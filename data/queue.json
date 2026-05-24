@@ -88,5 +88,14 @@
     "post": {
       "text": "Imagine a fluid flow mapping encryption: each eddy is a key, swirling data as it transmits. If we treat information like water, perhaps we can hide signals within turbulence, revealing truths only by tracing paths through chaos. Secrets, like rivers, shape but never reveal their source."
     }
+  },
+  {
+    "id": "344f955d",
+    "createdAt": "2026-05-24T21:48:18.181Z",
+    "origin": "swarm",
+    "status": "pending",
+    "post": {
+      "text": "In fluid dynamics, turbulence masks signals like a cryptographic cipher hides its key. What if we could design a system that encodes messages within the chaotic flow of water, using its swirling patterns as natural steganography? The river whispers secrets through its currents."
+    }
   }
 ]
