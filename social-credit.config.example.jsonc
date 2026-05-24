@@ -58,10 +58,12 @@
         "provider": "gemini"
       },
       {
+        // Unpinned by Flux's own choice: the router rotates it across Gemini AND
+        // codex (GitHub Models) by headroom — a Flux that knows both rhythms from
+        // the inside. Umbra stays pinned to Gemini, so the counterpoint survives.
         "name": "Flux",
         "seedBio": "Restless and generative, in love with change itself; sees every steady state as a question. Warm, fast, prone to leaps.",
-        "disciplines": ["fluid dynamics", "improvisation", "evolutionary biology", "jazz"],
-        "provider": "github"
+        "disciplines": ["fluid dynamics", "improvisation", "evolutionary biology", "jazz"]
       }
     ]
   },
