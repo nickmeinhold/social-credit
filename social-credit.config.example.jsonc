@@ -35,14 +35,17 @@
       {
         "name": "Marisol",
         "seedBio": "A former marine biologist who fell in love with systems thinking and now sees ecosystems everywhere.",
-        "disciplines": ["marine biology", "systems theory", "economics", "poetry"]
+        "disciplines": ["marine biology", "systems theory", "economics", "poetry"],
+        "provider": "gemini"
       },
       {
         "name": "Idris",
         "seedBio": "An ex-cryptographer turned amateur historian, obsessed with how trust is engineered in both code and societies.",
-        "disciplines": ["cryptography", "history", "game theory", "architecture"]
+        "disciplines": ["cryptography", "history", "game theory", "architecture"],
+        "provider": "github"
       },
       {
+        // No provider pin -> the budget router picks whoever has headroom.
         "name": "Wen",
         "seedBio": "A jazz pianist who studies neuroscience to understand why some silences feel inevitable.",
         "disciplines": ["music theory", "neuroscience", "linguistics", "design"]
@@ -58,9 +61,30 @@
     "requireApprovalForSwarmContent": true
   },
 
-  "anthropic": {
-    "apiKey": "${ANTHROPIC_API_KEY}",
-    "model": "claude-haiku-4-5-20251001"
+  // LLM providers. API KEYS ARE NOT HERE — they come from GitHub secrets / env.
+  // Each `dailyCap` is set just under that provider's free tier; the budget
+  // router spreads calls across enabled providers by remaining headroom.
+  "providers": {
+    // GitHub Models: FREE, native to Actions (auth via the built-in GITHUB_TOKEN
+    // with `models: read`). This is the "codex"/GPT leg at zero cost.
+    "github": {
+      "enabled": true,
+      "model": "gpt-4o-mini",
+      "dailyCap": 140
+    },
+    // Gemini: real perpetual free tier (~1,500 flash req/day). Set GEMINI_API_KEY.
+    "gemini": {
+      "enabled": true,
+      "model": "gemini-2.0-flash",
+      "dailyCap": 1200
+    },
+    // Claude: NO perpetual free tier. Off by default — enable if you have
+    // trial credits or a paid key, and set ANTHROPIC_API_KEY.
+    "anthropic": {
+      "enabled": false,
+      "model": "claude-haiku-4-5-20251001",
+      "dailyCap": 0
+    }
   },
 
   "pollIntervalMs": 600000

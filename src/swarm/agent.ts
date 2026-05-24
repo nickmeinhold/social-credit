@@ -10,7 +10,7 @@
  * remember), which is how personalities develop over time rather than resetting
  * each run.
  */
-import type { Claude } from "../llm/claude.js";
+import type { LLM } from "../llm/types.js";
 import {
   type Persona,
   renderSystemPrompt,
@@ -27,10 +27,15 @@ export interface Rating {
 }
 
 export class Agent {
-  constructor(public persona: Persona, private llm: Claude) {}
+  constructor(public persona: Persona, private llm: LLM) {}
 
   private system() {
     return renderSystemPrompt(this.persona);
+  }
+
+  /** The provider this agent prefers, if pinned — passed to the budget router. */
+  private get prefer() {
+    return this.persona.provider;
   }
 
   /** Contribute a turn to a discussion given the recent thread. */
@@ -48,6 +53,7 @@ export class Agent {
       ],
       temperature: 1,
       maxTokens: 350,
+      preferProvider: this.prefer,
     });
     this.persona.rounds += 1;
     reinforce(this.persona, dominantDiscipline(this.persona), 0.02);
@@ -72,6 +78,7 @@ export class Agent {
       ],
       temperature: 0.4,
       maxTokens: 200,
+      preferProvider: this.prefer,
     });
     const r = safeParseRating(raw);
     if (r.score >= 0.7 && r.discipline) reinforce(this.persona, r.discipline, 0.06);
@@ -93,6 +100,7 @@ export class Agent {
       ],
       temperature: 1.1,
       maxTokens: 200,
+      preferProvider: this.prefer,
     });
     this.persona.rounds += 1;
     return text.trim();

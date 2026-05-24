@@ -6,10 +6,10 @@
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { DATA_DIR, dataPath } from "../paths.js";
 import type { Persona } from "./persona.js";
 
-const DATA_DIR = "data";
-const AGENTS_DIR = join(DATA_DIR, "agents");
+const AGENTS_DIR = dataPath("agents");
 
 function ensureDirs() {
   mkdirSync(AGENTS_DIR, { recursive: true });

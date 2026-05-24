@@ -10,7 +10,7 @@
  * anything) reaches a real platform. The arena itself never touches the network.
  */
 import type { Config } from "../config.js";
-import type { Claude } from "../llm/claude.js";
+import type { LLM } from "../llm/types.js";
 import { Agent } from "./agent.js";
 import { savePersona, appendTranscript } from "./store.js";
 import { dominantDiscipline } from "./persona.js";
@@ -43,7 +43,7 @@ function sample<T>(arr: T[], n: number): T[] {
 
 export async function runRound(
   cfg: Config,
-  llm: Claude,
+  llm: LLM,
   agents: Agent[],
   candidates: Candidate[],
 ): Promise<{ boosts: Boost[]; drafts: Draft[] }> {

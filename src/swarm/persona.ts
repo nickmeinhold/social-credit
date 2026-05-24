@@ -29,6 +29,8 @@ export interface Persona {
   memories: Memory[];
   /** Total discussion rounds this agent has participated in. */
   rounds: number;
+  /** Optional pinned provider id, so the base model flavours the voice. */
+  provider?: string;
 }
 
 const MAX_MEMORIES = 40;
@@ -41,6 +43,7 @@ export function seedPersona(seed: AgentSeed): Persona {
     affinities: Object.fromEntries(seed.disciplines.map((d) => [d, 0.5])),
     memories: [],
     rounds: 0,
+    provider: seed.provider,
   };
 }
 

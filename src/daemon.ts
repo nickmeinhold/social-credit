@@ -18,7 +18,8 @@
  * Each job is wrapped so one platform/API failure can't kill the loop.
  */
 import type { Config } from "./config.js";
-import { Claude } from "./llm/claude.js";
+import { buildRouter } from "./llm/index.js";
+import { BudgetRouter } from "./llm/router.js";
 import { buildAdapters, type PlatformAdapter } from "./platforms/index.js";
 import { pollNewItems } from "./sources/rss.js";
 import { Agent } from "./swarm/agent.js";
@@ -29,7 +30,7 @@ import { enqueue, list, setStatus } from "./bridge/queue.js";
 
 export class Daemon {
   private adapters: PlatformAdapter[];
-  private llm?: Claude;
+  private llm?: BudgetRouter;
   private agents: Agent[] = [];
   /** Candidates accumulated from recent own-content for the swarm to chew on. */
   private recentCandidates: Candidate[] = [];
@@ -38,7 +39,9 @@ export class Daemon {
   constructor(private cfg: Config) {
     this.adapters = buildAdapters(cfg);
     if (cfg.swarm.enabled) {
-      this.llm = new Claude(cfg.anthropic.apiKey, cfg.anthropic.model);
+      // Router reads provider keys from env (secrets); only enabled+keyed
+      // providers participate. Throws if none are available.
+      this.llm = buildRouter(cfg);
       // Load each agent's evolved persona from disk, or seed it on first run.
       this.agents = cfg.swarm.agents.map((seed) => {
         const persona = loadPersona(seed.name) ?? seedPersona(seed);
@@ -91,6 +94,22 @@ export class Daemon {
         }
       }
       if (results.length) setStatus(item.id, "posted", results);
+    }
+  }
+
+  /**
+   * One complete pass for CI: poll sources, run a swarm round, flush. Each step
+   * is isolated so a capped provider or a flaky platform can't abort the rest —
+   * the GitHub Action just records the error and the next cron tick retries.
+   * Logs budget usage so the workflow output shows headroom against free tiers.
+   */
+  async tickOnce(): Promise<void> {
+    await this.safe("poll", () => this.pollSources());
+    await this.safe("swarm", () => this.swarmTick());
+    await this.safe("flush", () => this.flushQueue());
+    if (this.llm) {
+      const u = this.llm.usage().map((x) => `${x.id} ${x.used}/${x.cap}`).join("  ");
+      console.log(`[budget] today: ${u}`);
     }
   }
 

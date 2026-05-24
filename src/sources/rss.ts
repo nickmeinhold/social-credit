@@ -6,7 +6,7 @@
  * by link, so this is belt-and-braces.
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { DATA_DIR, dataPath } from "../paths.js";
 import Parser from "rss-parser";
 
 export interface FeedItem {
@@ -15,16 +15,16 @@ export interface FeedItem {
   contentSnippet: string;
 }
 
-const SEEN_FILE = join("data", "seen.json");
+const SEEN_FILE = () => dataPath("seen.json");
 const parser = new Parser();
 
 function loadSeen(): Set<string> {
-  if (!existsSync(SEEN_FILE)) return new Set();
-  return new Set(JSON.parse(readFileSync(SEEN_FILE, "utf8")) as string[]);
+  if (!existsSync(SEEN_FILE())) return new Set();
+  return new Set(JSON.parse(readFileSync(SEEN_FILE(), "utf8")) as string[]);
 }
 function saveSeen(seen: Set<string>) {
-  mkdirSync("data", { recursive: true });
-  writeFileSync(SEEN_FILE, JSON.stringify([...seen], null, 2));
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(SEEN_FILE(), JSON.stringify([...seen], null, 2));
 }
 
 /** Return only entries not seen before across all feeds, and mark them seen. */

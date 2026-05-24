@@ -79,6 +79,14 @@ program
   });
 
 program
+  .command("tick")
+  .description("Run ONE full pass (poll + swarm + flush) and exit — used by the GitHub Action cron")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.tickOnce();
+  });
+
+program
   .command("swarm:tick")
   .description("Run one swarm discussion round")
   .action(async () => {

@@ -16,6 +16,18 @@ export interface AgentSeed {
   seedBio: string;
   /** Disciplines this agent draws on when cross-pollinating ideas. */
   disciplines: string[];
+  /** Optional: pin to a provider so its base model flavours the voice. */
+  provider?: string;
+}
+
+/** Per-provider config. The API KEY is NOT here — it comes from a secret/env. */
+export interface ProviderConfig {
+  enabled: boolean;
+  model: string;
+  /** Calls/day to stay just under this provider's free tier. */
+  dailyCap: number;
+  /** OpenAI-compatible base URL override (e.g. point "github" at OpenAI). */
+  baseURL?: string;
 }
 
 export interface Config {
@@ -43,27 +55,30 @@ export interface Config {
     /** Hold swarm-generated original content in the queue for manual approval. */
     requireApprovalForSwarmContent: boolean;
   };
-  anthropic: {
-    apiKey: string;
-    /** Model for the agent swarm. Haiku by default — many cheap agents. */
-    model: string;
+  /** LLM providers. Keys come from env/secrets, not from here. */
+  providers: {
+    anthropic?: ProviderConfig;
+    gemini?: ProviderConfig;
+    github?: ProviderConfig;
   };
-  /** How often the daemon polls RSS sources, in ms. */
+  /** How often the daemon polls RSS sources, in ms (daemon mode only). */
   pollIntervalMs: number;
 }
 
 const DEFAULTS = {
   swarm: { discussionIntervalMs: 5 * 60_000, boostThreshold: 0.8 },
-  anthropic: { model: "claude-haiku-4-5-20251001" },
   pollIntervalMs: 10 * 60_000,
 };
 
-/** Replace ${VAR} with process.env.VAR; throws if a referenced var is unset. */
+/** Replace ${VAR} with process.env.VAR; missing vars become "" (with a warning)
+ *  so a fork that hasn't set every optional secret still loads. */
 function interpolateEnv(raw: string): string {
   return raw.replace(/\$\{(\w+)\}/g, (_, name) => {
     const v = process.env[name];
-    if (v === undefined)
-      throw new Error(`Config references \${${name}} but it is not set in the environment`);
+    if (v === undefined) {
+      console.warn(`[config] \${${name}} not set — using empty string`);
+      return "";
+    }
     return v;
   });
 }
@@ -95,16 +110,13 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
       requireApprovalForSwarmContent: true,
       ...parsed.bridge,
     },
-    anthropic: {
-      apiKey: "",
-      ...DEFAULTS.anthropic,
-      ...parsed.anthropic,
-    },
+    providers: parsed.providers ?? {},
     pollIntervalMs: parsed.pollIntervalMs ?? DEFAULTS.pollIntervalMs,
   };
 
-  if (cfg.swarm.enabled && !cfg.anthropic.apiKey)
-    throw new Error("swarm.enabled is true but anthropic.apiKey is empty");
+  const anyProvider = Object.values(cfg.providers).some((p) => p?.enabled);
+  if (cfg.swarm.enabled && !anyProvider)
+    throw new Error("swarm.enabled is true but no provider is enabled in `providers`");
 
   return cfg;
 }

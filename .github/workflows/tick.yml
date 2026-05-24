@@ -1,0 +1,57 @@
+name: swarm-tick
+
+# Each forker runs this on their OWN repo with their OWN secrets. The cron is
+# the scheduler the long-running daemon used to be; one run == one tick.
+on:
+  schedule:
+    # Every 30 min. With ~3 speakers + ratings that's well under every free tier
+    # (see the budget math in FORKING.md). Cron on Actions is best-effort and
+    # often runs late under load — that's fine for a social swarm.
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {} # manual "Run workflow" button for testing
+
+# Never let two ticks race the swarm-state branch.
+concurrency:
+  group: swarm-tick
+  cancel-in-progress: false
+
+permissions:
+  contents: write # push the swarm-state branch
+  models: read    # use GitHub Models (the free GPT/"codex" provider)
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history to add a worktree on another branch
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Restore swarm state
+        run: bash scripts/state-sync.sh restore
+
+      - name: Tick
+        env:
+          SC_DATA_DIR: .swarm-state/data
+          # LLM providers — set whichever you have as repo secrets. GITHUB_TOKEN
+          # is automatic and gives you the free GitHub Models provider for free.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Social platforms — set the ones you post to.
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+          MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
+          LINKEDIN_TOKEN: ${{ secrets.LINKEDIN_TOKEN }}
+        run: node dist/cli.js tick
+
+      - name: Save swarm state
+        if: always() # persist personality drift even if posting failed
+        run: bash scripts/state-sync.sh save

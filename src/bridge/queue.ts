@@ -11,8 +11,8 @@
  * via the CLI.
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { DATA_DIR, dataPath } from "../paths.js";
 import type { Post } from "../platforms/types.js";
 
 export type QueueStatus = "pending" | "approved" | "posted" | "rejected";
@@ -28,15 +28,15 @@ export interface QueueItem {
   results?: { platform: string; url?: string }[];
 }
 
-const QUEUE_FILE = join("data", "queue.json");
+const QUEUE_FILE = () => dataPath("queue.json");
 
 function read(): QueueItem[] {
-  if (!existsSync(QUEUE_FILE)) return [];
-  return JSON.parse(readFileSync(QUEUE_FILE, "utf8")) as QueueItem[];
+  if (!existsSync(QUEUE_FILE())) return [];
+  return JSON.parse(readFileSync(QUEUE_FILE(), "utf8")) as QueueItem[];
 }
 function write(items: QueueItem[]) {
-  mkdirSync("data", { recursive: true });
-  writeFileSync(QUEUE_FILE, JSON.stringify(items, null, 2));
+  mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(QUEUE_FILE(), JSON.stringify(items, null, 2));
 }
 
 /** Add an item. Own content can be born "approved"; swarm content is "pending". */
