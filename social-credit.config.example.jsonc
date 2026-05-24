@@ -1,0 +1,67 @@
+{
+  // Where to discover YOUR OWN content. The daemon posts these for you.
+  "sources": {
+    "rss": [
+      "https://yourblog.example/feed.xml"
+    ]
+  },
+
+  // Only platforms you list here are touched. Use ${ENV_VAR} for secrets so
+  // tokens stay out of the file (this file is gitignored anyway).
+  "platforms": {
+    // Bluesky: Settings -> App Passwords -> create one. Works out of the box.
+    "bluesky": {
+      "identifier": "you.bsky.social",
+      "appPassword": "${BSKY_APP_PASSWORD}"
+    },
+    // Mastodon: Preferences -> Development -> New application (scope: write:statuses).
+    "mastodon": {
+      "instance": "https://mastodon.social",
+      "accessToken": "${MASTODON_TOKEN}"
+    }
+    // LinkedIn: needs an approved app (Share on LinkedIn product) + OAuth.
+    // "linkedin": {
+    //   "accessToken": "${LINKEDIN_TOKEN}",
+    //   "authorUrn": "urn:li:person:XXXXXXX"
+    // }
+  },
+
+  // The agent swarm. Each agent develops a personality over time.
+  "swarm": {
+    "enabled": true,
+    "discussionIntervalMs": 300000,
+    "boostThreshold": 0.8,
+    "agents": [
+      {
+        "name": "Marisol",
+        "seedBio": "A former marine biologist who fell in love with systems thinking and now sees ecosystems everywhere.",
+        "disciplines": ["marine biology", "systems theory", "economics", "poetry"]
+      },
+      {
+        "name": "Idris",
+        "seedBio": "An ex-cryptographer turned amateur historian, obsessed with how trust is engineered in both code and societies.",
+        "disciplines": ["cryptography", "history", "game theory", "architecture"]
+      },
+      {
+        "name": "Wen",
+        "seedBio": "A jazz pianist who studies neuroscience to understand why some silences feel inevitable.",
+        "disciplines": ["music theory", "neuroscience", "linguistics", "design"]
+      }
+    ]
+  },
+
+  // The bridge policy between the swarm/sources and real posting.
+  "bridge": {
+    // Your own blog posts: auto-publish without asking.
+    "autoPostOwnContent": true,
+    // Agent-written original content: hold for your approval first.
+    "requireApprovalForSwarmContent": true
+  },
+
+  "anthropic": {
+    "apiKey": "${ANTHROPIC_API_KEY}",
+    "model": "claude-haiku-4-5-20251001"
+  },
+
+  "pollIntervalMs": 600000
+}

@@ -1,0 +1,30 @@
+{
+  "name": "social-credit",
+  "version": "0.1.0",
+  "description": "A daemon that auto-syndicates your own content across socials, driven by a swarm of AI agents with evolving personalities.",
+  "type": "module",
+  "bin": {
+    "social-credit": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
+    "@atproto/api": "^0.13.18",
+    "commander": "^12.1.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
