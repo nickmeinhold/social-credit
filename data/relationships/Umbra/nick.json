@@ -1,0 +1,11 @@
+{
+  "id": "nick",
+  "name": "Nick",
+  "kind": "human",
+  "email": "nick@example.com",
+  "repo": "nickmeinhold/social-credit",
+  "notes": [],
+  "sentiment": 0,
+  "topics": [],
+  "interactions": 0
+}
