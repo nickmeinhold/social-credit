@@ -47,7 +47,7 @@
   "swarm": {
     "enabled": true,
     "discussionIntervalMs": 300000,
-    "boostThreshold": 0.8,
+    "boostThreshold": 0.4,
     "dream": true,
     "ceremonyMinRounds": 12,
     "agents": [

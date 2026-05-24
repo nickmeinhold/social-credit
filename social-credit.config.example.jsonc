@@ -47,7 +47,11 @@
   "swarm": {
     "enabled": true,
     "discussionIntervalMs": 300000,
-    "boostThreshold": 0.8,
+    // Low on purpose: this is a happy circle that celebrates each other. The
+    // protection against engagement-RINGS is NOT a high bar — it's the rate
+    // limit + jitter + non-reciprocity applied when boosts become real likes/
+    // stars (see the cross-repo/social engagement design). Warmth here is fine.
+    "boostThreshold": 0.4,
     "dream": true,
     "ceremonyMinRounds": 12,
     "agents": [
