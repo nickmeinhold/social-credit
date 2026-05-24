@@ -78,8 +78,18 @@
       "model": "gemini-2.0-flash",
       "dailyCap": 1200
     },
-    // Claude: NO perpetual free tier. Off by default — enable if you have
-    // trial credits or a paid key, and set ANTHROPIC_API_KEY.
+    // Claude via Max/Pro SUBSCRIPTION — no API bill, uses the plan you already
+    // pay for. Run `claude setup-token` on a Max/Pro-logged-in machine, store
+    // the result as the CLAUDE_CODE_OAUTH_TOKEN secret. Enable this OR anthropic
+    // (or both). dailyCap is a courtesy throttle — the real limit is the plan's
+    // rolling 5-hour window. model is a CLI alias: sonnet | opus | haiku.
+    "claudeMax": {
+      "enabled": false,
+      "model": "sonnet",
+      "dailyCap": 200
+    },
+    // Claude via API KEY (per-token billing). No perpetual free tier. Enable if
+    // you'd rather pay per token; set ANTHROPIC_API_KEY.
     "anthropic": {
       "enabled": false,
       "model": "claude-haiku-4-5-20251001",

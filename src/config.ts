@@ -57,7 +57,10 @@ export interface Config {
   };
   /** LLM providers. Keys come from env/secrets, not from here. */
   providers: {
+    /** Claude via API key (per-token billing). */
     anthropic?: ProviderConfig;
+    /** Claude via Max/Pro subscription (the `claude` CLI + OAuth token). */
+    claudeMax?: ProviderConfig;
     gemini?: ProviderConfig;
     github?: ProviderConfig;
   };

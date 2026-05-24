@@ -10,6 +10,7 @@
 import type { Config } from "../config.js";
 import { BudgetRouter, type Capped } from "./router.js";
 import { AnthropicProvider } from "./anthropic.js";
+import { ClaudeCliProvider } from "./claude-cli.js";
 import { GeminiProvider } from "./gemini.js";
 import { OpenAICompatProvider } from "./openai.js";
 
@@ -21,6 +22,14 @@ export function buildRouter(cfg: Config): BudgetRouter {
     const key = process.env.ANTHROPIC_API_KEY;
     if (key) capped.push({ llm: new AnthropicProvider(key, p.anthropic.model), dailyCap: p.anthropic.dailyCap });
     else console.warn("[llm] anthropic enabled but ANTHROPIC_API_KEY is unset — skipping");
+  }
+
+  if (p.claudeMax?.enabled) {
+    // No API key — the `claude` CLI authenticates via CLAUDE_CODE_OAUTH_TOKEN
+    // in the environment. We just confirm the token is present.
+    if (process.env.CLAUDE_CODE_OAUTH_TOKEN)
+      capped.push({ llm: new ClaudeCliProvider(p.claudeMax.model), dailyCap: p.claudeMax.dailyCap });
+    else console.warn("[llm] claudeMax enabled but CLAUDE_CODE_OAUTH_TOKEN is unset — skipping");
   }
 
   if (p.gemini?.enabled) {

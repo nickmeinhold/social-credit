@@ -18,7 +18,8 @@ Set only the ones you want:
 |---|---|---|
 | _(nothing)_ | GitHub Models provider | ✅ uses the built-in `GITHUB_TOKEN` |
 | `GEMINI_API_KEY` | Gemini provider | ✅ ~1,500 flash req/day |
-| `ANTHROPIC_API_KEY` | Claude provider | ❌ trial credits / paid only |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Claude via **Max/Pro plan** | ♻️ uses the subscription you already pay for |
+| `ANTHROPIC_API_KEY` | Claude via **API key** | ❌ per-token, trial credits / paid |
 | `BSKY_APP_PASSWORD` | post to Bluesky | ✅ |
 | `MASTODON_TOKEN` | post to Mastodon | ✅ |
 | `LINKEDIN_TOKEN` | post to LinkedIn | needs an approved app |
@@ -48,7 +49,18 @@ headroom, capped by `dailyCap` in your config. The defaults:
 |---|---|---|
 | `github` (GPT) | 140 | GitHub Models low-tier daily request limit |
 | `gemini` | 1,200 | under the ~1,500/day flash free tier |
-| `anthropic` | 0 (off) | no perpetual free tier |
+| `claudeMax` | 200 (off) | subscription — real cap is a rolling 5-hour window, not daily |
+| `anthropic` | 0 (off) | API key, no perpetual free tier |
+
+### Two ways to use Claude
+
+- **`claudeMax`** — bills against your **Max/Pro subscription**. Run
+  `claude setup-token` on a machine logged into Claude Code, save the output as
+  `CLAUDE_CODE_OAUTH_TOKEN`. The workflow installs the `claude` CLI only when
+  that secret is set. No per-token charges.
+- **`anthropic`** — bills a **pay-as-you-go API key** (`ANTHROPIC_API_KEY`).
+
+Enable whichever you have (or both — they're separate providers to the router).
 
 **The math:** a tick uses roughly `speakers (≤3) + ratings (~3×candidates) + 1
 compose` ≈ 5–12 calls. At 48 ticks/day that's ~250–600 calls, split across
