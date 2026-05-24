@@ -8,13 +8,13 @@
     "noir"
   ],
   "affinities": {
-    "cryptography": 0.52,
-    "negative space in art": 0.4975,
-    "epidemiology": 0.4975,
-    "noir": 0.4975
+    "cryptography": 0.54,
+    "negative space in art": 0.495,
+    "epidemiology": 0.495,
+    "noir": 0.495
   },
   "memories": [],
-  "rounds": 2,
+  "rounds": 4,
   "provider": "gemini",
   "chosenName": "Umbra"
 }
