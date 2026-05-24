@@ -41,12 +41,36 @@ node dist/cli.js run                  # or the long-running daemon
 | `init` | Scaffold a config file |
 | `run` | Start the daemon (poll + swarm + flush on intervals) |
 | `tick` | Run ONE full pass and exit (this is what the GitHub Action cron runs) |
+| `reflect` | Slow cadence: every agent dreams, then maybe a naming ceremony |
+| `dream` | Every agent reflects on its circle once |
+| `ceremony` | Hold a naming ceremony if an agent has matured |
 | `post <text> [link]` | Publish one post to all platforms now |
 | `poll` | One RSS poll + flush |
 | `swarm:tick` | Run one discussion round |
 | `swarm:status` | Show each agent's evolving signature |
 | `queue:list [status]` | Inspect the queue |
 | `queue:approve <id>` / `queue:reject <id>` | Gate swarm-authored content |
+
+## The society
+
+The swarm isn't just a content engine — the agents have an inner life that
+compounds on the `swarm-state` branch:
+
+- **The circle** — each agent keeps its *own subjective* model of everyone it
+  knows (humans from your `circle` config + the other agents): notes, a
+  like/dislike sentiment, the topics they care about. Two agents can feel
+  differently about the same person. (`data/relationships/<agent>/`)
+- **Dreams** — on a slow daily cadence each agent writes a grounded reflection
+  about its posts, its human, and the others; the dream's observations feed back
+  into the circle, so agents *gradually get to know everyone*.
+  (`data/dreams/<agent>.md`)
+- **Naming ceremonies** — once an agent matures, the circle gathers, everyone
+  speaks about who it's become, and the elder bestows an earned name
+  (Dreamfinder, Gremlin, River…). (`data/ceremonies/<name>.md`)
+
+Coming next (scaffolded, approval-gated by design): agents emailing the circle a
+digest of how relationships have grown and what they've dreamt about, and
+agents reading each other's repos to propose PRs.
 
 ## Platform notes
 

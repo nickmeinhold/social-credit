@@ -26,29 +26,42 @@
     // }
   },
 
-  // The agent swarm. Each agent develops a personality over time.
+  // Who the swarm acts for — named in the agents' dreams.
+  "ownerName": "Nick",
+
+  // The humans the agents know. Co-agents are added to each circle
+  // automatically. Add an `email` to let an agent write to someone; add a
+  // `repo` to let agents read it for the (allowlisted) PR feature.
+  "circle": [
+    {
+      "id": "nick",
+      "name": "Nick",
+      "kind": "human",
+      "email": "nick@example.com",
+      "repo": "nickmeinhold/social-credit"
+    }
+  ],
+
+  // The agent swarm. Each agent develops a personality over time, dreams about
+  // the circle, and earns a chosen name in a ceremony.
   "swarm": {
     "enabled": true,
     "discussionIntervalMs": 300000,
     "boostThreshold": 0.8,
+    "dream": true,
+    "ceremonyMinRounds": 12,
     "agents": [
       {
-        "name": "Marisol",
-        "seedBio": "A former marine biologist who fell in love with systems thinking and now sees ecosystems everywhere.",
-        "disciplines": ["marine biology", "systems theory", "economics", "poetry"],
+        "name": "Umbra",
+        "seedBio": "Drawn to shadow and edge-cases; reads the world for what's deliberately left unsaid. Sceptical, precise, quietly tender once you've earned it.",
+        "disciplines": ["cryptography", "negative space in art", "epidemiology", "noir"],
         "provider": "gemini"
       },
       {
-        "name": "Idris",
-        "seedBio": "An ex-cryptographer turned amateur historian, obsessed with how trust is engineered in both code and societies.",
-        "disciplines": ["cryptography", "history", "game theory", "architecture"],
+        "name": "Flux",
+        "seedBio": "Restless and generative, in love with change itself; sees every steady state as a question. Warm, fast, prone to leaps.",
+        "disciplines": ["fluid dynamics", "improvisation", "evolutionary biology", "jazz"],
         "provider": "github"
-      },
-      {
-        // No provider pin -> the budget router picks whoever has headroom.
-        "name": "Wen",
-        "seedBio": "A jazz pianist who studies neuroscience to understand why some silences feel inevitable.",
-        "disciplines": ["music theory", "neuroscience", "linguistics", "design"]
       }
     ]
   },

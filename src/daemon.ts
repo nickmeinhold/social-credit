@@ -26,6 +26,9 @@ import { Agent } from "./swarm/agent.js";
 import { runRound, type Candidate } from "./swarm/arena.js";
 import { seedPersona } from "./swarm/persona.js";
 import { loadPersona, savePersona } from "./swarm/store.js";
+import { meet } from "./swarm/circle.js";
+import { dreamOne } from "./swarm/dream.js";
+import { maybeHoldCeremony } from "./swarm/ceremony.js";
 import { enqueue, list, setStatus } from "./bridge/queue.js";
 
 export class Daemon {
@@ -48,6 +51,7 @@ export class Daemon {
         savePersona(persona);
         return new Agent(persona, this.llm!);
       });
+      this.seedCircles();
     }
   }
 
@@ -95,6 +99,51 @@ export class Daemon {
       }
       if (results.length) setStatus(item.id, "posted", results);
     }
+  }
+
+  /** Make sure every agent knows every human in the config and every co-agent. */
+  private seedCircles(): void {
+    for (const agent of this.agents) {
+      for (const human of this.cfg.circle) meet(agent.persona.name, human);
+      for (const other of this.agents) {
+        if (other === agent) continue;
+        meet(agent.persona.name, {
+          id: other.persona.name.toLowerCase(),
+          name: other.persona.name,
+          kind: "agent",
+        });
+      }
+    }
+  }
+
+  /** A short, human-readable digest of recent swarm activity for dream context. */
+  private recentSummary(): string {
+    const cands = this.recentCandidates.map((c) => `- ${c.title ?? c.text.slice(0, 50)}`).join("\n");
+    return cands || "- (a quiet stretch; no new posts from your human lately)";
+  }
+
+  /** Every agent dreams once — reflecting on the circle and updating it. */
+  async dreamOnce(): Promise<void> {
+    if (!this.cfg.swarm.dream) return;
+    const recent = this.recentSummary();
+    for (const agent of this.agents) {
+      await this.safe(`dream:${agent.persona.name}`, () =>
+        dreamOne(agent, this.cfg.ownerName, recent),
+      );
+    }
+    console.log(`[dream] ${this.agents.length} agent(s) reflected`);
+  }
+
+  /** Hold a naming ceremony if anyone has matured. */
+  async ceremonyOnce(): Promise<void> {
+    const named = await maybeHoldCeremony(this.agents, this.cfg.swarm.ceremonyMinRounds);
+    if (named) console.log(`[ceremony] the circle named someone: ${named}`);
+  }
+
+  /** The slow cadence: dream, then maybe a ceremony. Run by the reflect cron. */
+  async reflectOnce(): Promise<void> {
+    await this.safe("dream", () => this.dreamOnce());
+    await this.safe("ceremony", () => this.ceremonyOnce());
   }
 
   /**

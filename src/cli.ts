@@ -21,7 +21,7 @@ import { loadConfig } from "./config.js";
 import { Daemon } from "./daemon.js";
 import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
-import { dominantDiscipline } from "./swarm/persona.js";
+import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
 
 const program = new Command();
@@ -95,14 +95,41 @@ program
   });
 
 program
+  .command("reflect")
+  .description("Slow cadence: every agent dreams, then maybe a naming ceremony (reflect cron)")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.reflectOnce();
+  });
+
+program
+  .command("dream")
+  .description("Have every agent dream once (reflect on the circle)")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.dreamOnce();
+  });
+
+program
+  .command("ceremony")
+  .description("Hold a naming ceremony if an agent has matured")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.ceremonyOnce();
+  });
+
+program
   .command("swarm:status")
   .description("Show each agent's evolving signature")
   .action(() => {
     const personas = loadAllPersonas();
     if (!personas.length) return console.log("No agents yet — run the daemon to seed them.");
     for (const p of personas) {
+      const named = p.chosenName ? `${p.chosenName} (was ${p.name})` : `${p.name} (unnamed)`;
       console.log(
-        `${p.name}  [${p.rounds} rounds]  lens: ${dominantDiscipline(p)}  memories: ${p.memories.length}`,
+        `${displayName(p).padEnd(12)} ${named.padEnd(24)} [${p.rounds} rounds]  lens: ${dominantDiscipline(
+          p,
+        )}  memories: ${p.memories.length}`,
       );
     }
   });

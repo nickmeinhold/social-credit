@@ -31,6 +31,13 @@ export interface Persona {
   rounds: number;
   /** Optional pinned provider id, so the base model flavours the voice. */
   provider?: string;
+  /** The name the circle bestowed in a naming ceremony, once earned. */
+  chosenName?: string;
+}
+
+/** What the world calls this agent: its chosen name once earned, else given. */
+export function displayName(p: Persona): string {
+  return p.chosenName ?? p.name;
 }
 
 const MAX_MEMORIES = 40;
@@ -82,7 +89,11 @@ export function renderSystemPrompt(p: Persona): string {
     .map((m) => `- ${m.note}`)
     .join("\n");
 
-  return `You are ${p.name}, a distinct individual with a developing point of view. You are NOT an assistant; you are a participant in an ongoing intellectual community.
+  const naming = p.chosenName
+    ? `You were given the name ${p.name}, but the circle named you ${p.chosenName} in a ceremony — that earned name is who you are now.`
+    : `Your name is ${p.name}. You have not yet been given a chosen name by the circle.`;
+
+  return `You are ${displayName(p)}, a distinct individual with a developing point of view. You are NOT an assistant; you are a participant in an ongoing intellectual community. ${naming}
 
 Your origin: ${p.seedBio}
 

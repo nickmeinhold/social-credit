@@ -8,6 +8,7 @@
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { Person } from "./swarm/circle.js";
 
 export interface AgentSeed {
   /** Display name / handle inside the sandbox. */
@@ -48,7 +49,15 @@ export interface Config {
     discussionIntervalMs: number;
     /** 0..1 — an agent only boosts/reposts content it rates at or above this. */
     boostThreshold: number;
+    /** Let agents dream (reflect on the circle). Run via `dream` / reflect cron. */
+    dream: boolean;
+    /** Min rounds before an agent can be given a chosen name at a ceremony. */
+    ceremonyMinRounds: number;
   };
+  /** The human the swarm acts for, named in dreams. */
+  ownerName: string;
+  /** Humans the agents know. Co-agents are added to each circle automatically. */
+  circle: Person[];
   bridge: {
     /** Auto-publish the user's OWN content (from `sources`) without approval. */
     autoPostOwnContent: boolean;
@@ -69,7 +78,7 @@ export interface Config {
 }
 
 const DEFAULTS = {
-  swarm: { discussionIntervalMs: 5 * 60_000, boostThreshold: 0.8 },
+  swarm: { discussionIntervalMs: 5 * 60_000, boostThreshold: 0.8, dream: true, ceremonyMinRounds: 12 },
   pollIntervalMs: 10 * 60_000,
 };
 
@@ -114,6 +123,8 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
       ...parsed.bridge,
     },
     providers: parsed.providers ?? {},
+    ownerName: parsed.ownerName ?? "your human",
+    circle: parsed.circle ?? [],
     pollIntervalMs: parsed.pollIntervalMs ?? DEFAULTS.pollIntervalMs,
   };
 

@@ -1,0 +1,54 @@
+name: swarm-reflect
+
+# The SLOW cadence. tick.yml handles discussion + posting every 30 min; this
+# runs once a day: every agent dreams about the circle, and if someone has
+# matured, the swarm holds a naming ceremony. Kept separate so the cheap, frequent
+# loop and the richer, rarer loop don't compete.
+on:
+  schedule:
+    - cron: "17 6 * * *" # 06:17 UTC daily (offset to dodge the top-of-hour rush)
+  workflow_dispatch: {}
+
+concurrency:
+  group: swarm-state # share the lock with tick.yml — both touch swarm-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  models: read
+
+jobs:
+  reflect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install Claude CLI (for Max/Pro provider)
+        if: ${{ env.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Restore swarm state
+        run: bash scripts/state-sync.sh restore
+
+      - name: Reflect (dream + maybe a ceremony)
+        env:
+          SC_DATA_DIR: .swarm-state/data
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: node dist/cli.js reflect
+
+      - name: Save swarm state
+        if: always()
+        run: bash scripts/state-sync.sh save

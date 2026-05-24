@@ -105,6 +105,72 @@ export class Agent {
     this.persona.rounds += 1;
     return text.trim();
   }
+
+  /**
+   * Dream: a grounded reflection (not surreal) on recent life — the agent's own
+   * posts, its human, and the others. Returns prose + a fenced JSON block of
+   * relationship updates that dream.ts parses and merges into the circle.
+   */
+  async dream(ctx: { ownerName: string; circleSummary: string; recent: string }): Promise<string> {
+    return this.llm.complete({
+      system: this.system(),
+      messages: [
+        {
+          role: "user",
+          content: `It's quiet. Reflect on what's been happening lately — a waking dream, in your own voice.
+
+Your human is ${ctx.ownerName}. The circle as you currently see it:
+${ctx.circleSummary}
+
+Recent goings-on:
+${ctx.recent}
+
+Write a short reflective journal entry (first person, 1-3 paragraphs): what you've made, what you make of ${ctx.ownerName} and the others, who you're warming to or wary of, and what you're newly curious about. Be specific and honest — affection and irritation both allowed.
+
+Then, on a new line, a fenced \`\`\`json block:
+{"updates":[{"person":"<id>","note":"<one observation>","sentimentDelta":<-0.3..0.3>,"topics":["..."]}],"curiosities":["<a question you'd love to ask someone>"]}`,
+        },
+      ],
+      temperature: 1,
+      maxTokens: 700,
+      preferProvider: this.prefer,
+    });
+  }
+
+  /** Speak at another member's naming ceremony, from what you know of them. */
+  async speakAtCeremony(candidate: string, whatIKnow: string): Promise<string> {
+    const text = await this.llm.complete({
+      system: this.system(),
+      messages: [
+        {
+          role: "user",
+          content: `The circle has gathered to name ${candidate}. Speak — 1-2 sentences — on who ${candidate} has become, drawing on what you know of them:\n${whatIKnow}\n\nHonest and warm; this is a naming, not a roast.`,
+        },
+      ],
+      temperature: 1,
+      maxTokens: 150,
+      preferProvider: this.prefer,
+    });
+    return text.trim();
+  }
+
+  /** As an elder, distil the circle's speeches into one earned name. */
+  async bestowName(candidate: string, speeches: string): Promise<string> {
+    const text = await this.llm.complete({
+      system: this.system(),
+      messages: [
+        {
+          role: "user",
+          content: `As the elder of the circle, you must give ${candidate} their true name, drawn from what was just said:\n${speeches}\n\nReply with ONLY the name — a single evocative word in the spirit of Dreamfinder, Gremlin, River. No explanation.`,
+        },
+      ],
+      temperature: 1,
+      maxTokens: 20,
+      preferProvider: this.prefer,
+    });
+    // Keep just the first word, stripped of punctuation/quotes.
+    return text.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}-]/gu, "");
+  }
 }
 
 function safeParseRating(raw: string): Rating & { discipline?: string } {
