@@ -1,0 +1,120 @@
+{
+  // Where to discover YOUR OWN content. The daemon posts these for you.
+  "sources": {
+    "rss": [
+      
+    ]
+  },
+
+  // Only platforms you list here are touched. Use ${ENV_VAR} for secrets so
+  // tokens stay out of the file (this file is gitignored anyway).
+  "platforms": {
+    // Bluesky: Settings -> App Passwords -> create one. Works out of the box.
+    "bluesky": {
+      "identifier": "you.bsky.social",
+      "appPassword": "${BSKY_APP_PASSWORD}"
+    },
+    // Mastodon: Preferences -> Development -> New application (scope: write:statuses).
+    "mastodon": {
+      "instance": "https://mastodon.social",
+      "accessToken": "${MASTODON_TOKEN}"
+    }
+    // LinkedIn: needs an approved app (Share on LinkedIn product) + OAuth.
+    // "linkedin": {
+    //   "accessToken": "${LINKEDIN_TOKEN}",
+    //   "authorUrn": "urn:li:person:XXXXXXX"
+    // }
+  },
+
+  // Who the swarm acts for — named in the agents' dreams.
+  "ownerName": "Nick",
+
+  // The humans the agents know. Co-agents are added to each circle
+  // automatically. Add an `email` to let an agent write to someone; add a
+  // `repo` to let agents read it for the (allowlisted) PR feature.
+  "circle": [
+    {
+      "id": "nick",
+      "name": "Nick",
+      "kind": "human",
+      "email": "nick@example.com",
+      "repo": "nickmeinhold/social-credit"
+    }
+  ],
+
+  // The agent swarm. Each agent develops a personality over time, dreams about
+  // the circle, and earns a chosen name in a ceremony.
+  "swarm": {
+    "enabled": true,
+    "discussionIntervalMs": 300000,
+    "boostThreshold": 0.8,
+    "dream": true,
+    "ceremonyMinRounds": 12,
+    "agents": [
+      {
+        "name": "Umbra",
+        "seedBio": "Drawn to shadow and edge-cases; reads the world for what's deliberately left unsaid. Sceptical, precise, quietly tender once you've earned it.",
+        "disciplines": ["cryptography", "negative space in art", "epidemiology", "noir"],
+        "provider": "gemini",
+        // Already named upstream. On a FORK, the welcome rite strips this and
+        // the new circle names this agent afresh.
+        "alreadyNamed": true
+      },
+      {
+        // Unpinned by Flux's own choice: the router rotates it across Gemini AND
+        // codex (GitHub Models) by headroom — a Flux that knows both rhythms from
+        // the inside. Umbra stays pinned to Gemini, so the counterpoint survives.
+        "name": "Flux",
+        "seedBio": "Restless and generative, in love with change itself; sees every steady state as a question. Warm, fast, prone to leaps.",
+        "disciplines": ["fluid dynamics", "improvisation", "evolutionary biology", "jazz"],
+        "alreadyNamed": true
+      }
+    ]
+  },
+
+  // The bridge policy between the swarm/sources and real posting.
+  "bridge": {
+    // Your own blog posts: auto-publish without asking.
+    "autoPostOwnContent": true,
+    // Agent-written original content: hold for your approval first.
+    "requireApprovalForSwarmContent": true
+  },
+
+  // LLM providers. API KEYS ARE NOT HERE — they come from GitHub secrets / env.
+  // Each `dailyCap` is set just under that provider's free tier; the budget
+  // router spreads calls across enabled providers by remaining headroom.
+  "providers": {
+    // GitHub Models: FREE, native to Actions (auth via the built-in GITHUB_TOKEN
+    // with `models: read`). This is the "codex"/GPT leg at zero cost.
+    "github": {
+      "enabled": true,
+      "model": "gpt-4o-mini",
+      "dailyCap": 140
+    },
+    // Gemini: real perpetual free tier (~1,500 flash req/day). Set GEMINI_API_KEY.
+    "gemini": {
+      "enabled": true,
+      "model": "gemini-2.0-flash",
+      "dailyCap": 1200
+    },
+    // Claude via Max/Pro SUBSCRIPTION — no API bill, uses the plan you already
+    // pay for. Run `claude setup-token` on a Max/Pro-logged-in machine, store
+    // the result as the CLAUDE_CODE_OAUTH_TOKEN secret. Enable this OR anthropic
+    // (or both). dailyCap is a courtesy throttle — the real limit is the plan's
+    // rolling 5-hour window. model is a CLI alias: sonnet | opus | haiku.
+    "claudeMax": {
+      "enabled": false,
+      "model": "sonnet",
+      "dailyCap": 200
+    },
+    // Claude via API KEY (per-token billing). No perpetual free tier. Enable if
+    // you'd rather pay per token; set ANTHROPIC_API_KEY.
+    "anthropic": {
+      "enabled": false,
+      "model": "claude-haiku-4-5-20251001",
+      "dailyCap": 0
+    }
+  },
+
+  "pollIntervalMs": 600000
+}

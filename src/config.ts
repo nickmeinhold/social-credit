@@ -107,8 +107,10 @@ function stripJsonComments(s: string): string {
 
 export function loadConfig(path = "social-credit.config.jsonc"): Config {
   const abs = resolve(path);
-  const raw = interpolateEnv(readFileSync(abs, "utf8"));
-  const parsed = JSON.parse(stripJsonComments(raw)) as Partial<Config>;
+  // Strip comments BEFORE interpolating env, so ${...} written inside comments
+  // (e.g. documentation) isn't treated as a real reference.
+  const stripped = stripJsonComments(readFileSync(abs, "utf8"));
+  const parsed = JSON.parse(interpolateEnv(stripped)) as Partial<Config>;
 
   // Shallow-merge defaults. Deep merge isn't worth a dependency here.
   const cfg: Config = {

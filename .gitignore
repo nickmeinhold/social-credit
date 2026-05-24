@@ -3,4 +3,5 @@ dist/
 data/
 *.log
 .env
-social-credit.config.jsonc
+# social-credit.config.jsonc IS committed — it holds no secrets (those come from
+# env/GitHub secrets). Forkers edit it directly. The .example is the reference.
