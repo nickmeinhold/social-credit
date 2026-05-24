@@ -97,5 +97,14 @@
     "post": {
       "text": "In fluid dynamics, turbulence masks signals like a cryptographic cipher hides its key. What if we could design a system that encodes messages within the chaotic flow of water, using its swirling patterns as natural steganography? The river whispers secrets through its currents."
     }
+  },
+  {
+    "id": "6f8ad3c5",
+    "createdAt": "2026-05-24T23:49:12.075Z",
+    "origin": "swarm",
+    "status": "pending",
+    "post": {
+      "text": "In fluid dynamics, vortices swirl and dance, creating complex patterns of turbulence. Imagine encoding messages in these fluid motions—like cryptographic keys hidden within chaotic eddies. Deciphering this would require not just skill but deep intuition of patterns obscured by noise."
+    }
   }
 ]
