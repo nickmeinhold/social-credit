@@ -27,11 +27,14 @@ import { runRound, type Candidate } from "./swarm/arena.js";
 import { seedPersona } from "./swarm/persona.js";
 import { loadPersona, savePersona } from "./swarm/store.js";
 import { existsSync, writeFileSync, mkdirSync } from "node:fs";
-import { meet } from "./swarm/circle.js";
+import { meet, loadRelationship, saveRelationship } from "./swarm/circle.js";
 import { dreamOne } from "./swarm/dream.js";
+import { composeDigest, shouldEmail, eligibleRecipients } from "./swarm/digest.js";
 import { maybeHoldCeremony, inauguralCeremony } from "./swarm/ceremony.js";
+import { remember } from "./swarm/persona.js";
 import { dataPath } from "./paths.js";
 import { enqueue, list, setStatus } from "./bridge/queue.js";
+import { enqueueEmail, listEmails, setEmailStatus, sendEmail } from "./bridge/mailer.js";
 
 export class Daemon {
   private adapters: PlatformAdapter[];
@@ -140,6 +143,55 @@ export class Daemon {
   }
 
   /**
+   * Each agent may write at most one digest email this pass — to someone it
+   * knows well enough (interactions threshold), hasn't emailed recently
+   * (cooldown), and the dice favour (probability). We stamp `lastEmailedAt` at
+   * compose time, not send time, so an email waiting in the approval queue
+   * doesn't get recomposed every pass. Emails land in the queue unless
+   * `bridge.autoSendEmail` is on; flushEmails() does the actual sending.
+   */
+  async emailOnce(): Promise<void> {
+    const recent = this.recentSummary();
+    for (const agent of this.agents) {
+      const name = agent.persona.name;
+      for (const rel of eligibleRecipients(name)) {
+        if (!shouldEmail(rel, Math.random())) continue;
+        await this.safe(`email:${name}->${rel.id}`, async () => {
+          const draft = await composeDigest(agent, rel, recent);
+          const item = enqueueEmail(draft, this.cfg.bridge.autoSendEmail);
+          // Stamp the cooldown clock now so we don't recompose while it waits.
+          const r = loadRelationship(name, rel.id);
+          if (r) {
+            r.lastEmailedAt = new Date().toISOString();
+            saveRelationship(name, r);
+          }
+          remember(agent.persona, `Wrote ${rel.name} a note (email ${item.id})`, 0.5);
+          savePersona(agent.persona);
+          console.log(`[email] ${name} -> ${rel.name} queued ${item.id} (${item.status})`);
+        });
+        break; // one email per agent per pass — keep the swarm a gentle correspondent
+      }
+    }
+    await this.flushEmails();
+  }
+
+  /** Send every approved-but-unsent email. Needs SMTP configured (cfg.email). */
+  async flushEmails(): Promise<void> {
+    if (!this.cfg.email) return; // nothing can send without SMTP creds
+    for (const item of listEmails("approved")) {
+      try {
+        await sendEmail(item, this.cfg);
+        setEmailStatus(item.id, "sent", { sentAt: new Date().toISOString(), error: undefined });
+        console.log(`[email] sent ${item.id} -> ${item.toEmail}`);
+      } catch (err) {
+        // Leave it "approved" so the next flush retries; record why it failed.
+        setEmailStatus(item.id, "approved", { error: (err as Error).message });
+        console.error(`[email] send ${item.id} FAILED:`, (err as Error).message);
+      }
+    }
+  }
+
+  /**
    * The fork welcome rite. On a FORK only (SC_IS_FORK=true), and only once
    * (guarded by a sentinel on the swarm-state branch), the agents shed their
    * inherited names and the new circle names them afresh. Upstream this is a
@@ -171,6 +223,7 @@ export class Daemon {
   async reflectOnce(): Promise<void> {
     await this.safe("welcome", () => this.welcomeOnce());
     await this.safe("dream", () => this.dreamOnce());
+    await this.safe("email", () => this.emailOnce());
     await this.safe("ceremony", () => this.ceremonyOnce());
   }
 

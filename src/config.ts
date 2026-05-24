@@ -66,6 +66,19 @@ export interface Config {
     autoPostOwnContent: boolean;
     /** Hold swarm-generated original content in the queue for manual approval. */
     requireApprovalForSwarmContent: boolean;
+    /** Let agents send circle emails directly. Off = hold in the email queue. */
+    autoSendEmail: boolean;
+  };
+  /** SMTP for agent digest emails. Absent = email disabled. Creds via env. */
+  email?: {
+    host: string;
+    port: number;
+    /** TLS on connect. Defaults to true when port is 465. */
+    secure?: boolean;
+    user: string;
+    pass: string;
+    /** From header, e.g. "social-credit <bot@example.com>". */
+    from: string;
   };
   /** LLM providers. Keys come from env/secrets, not from here. */
   providers: {
@@ -125,8 +138,12 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
     bridge: {
       autoPostOwnContent: false,
       requireApprovalForSwarmContent: true,
+      autoSendEmail: false,
       ...parsed.bridge,
     },
+    // Only treat email as configured if a host actually came through (an empty
+    // ${SMTP_HOST} interpolates to "" for forks that haven't set the secret).
+    email: parsed.email?.host ? parsed.email : undefined,
     providers: parsed.providers ?? {},
     ownerName: parsed.ownerName ?? "your human",
     circle: parsed.circle ?? [],

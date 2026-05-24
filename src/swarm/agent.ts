@@ -137,6 +137,50 @@ Then, on a new line, a fenced \`\`\`json block:
     });
   }
 
+  /**
+   * Write the warm, personal heart of a digest email to someone in the circle:
+   * a greeting in character, then two questions — one cross-disciplinary spark
+   * and one genuinely curious about the recipient. The factual sections (the
+   * relationship graph, highlights, dream excerpts) are assembled around this by
+   * digest.ts; this method only writes the parts that need the agent's voice.
+   */
+  async writeDigest(ctx: {
+    recipientName: string;
+    circleSummary: string;
+    recentLife: string;
+    dreamExcerpt: string;
+  }): Promise<{ greeting: string; crossDisciplinaryQuestion: string; questionForYou: string }> {
+    const raw = await this.llm.complete({
+      system: this.system(),
+      messages: [
+        {
+          role: "user",
+          content: `You're writing a short, warm email to ${ctx.recipientName}, someone in your circle. Not a newsletter — a note from one mind to another.
+
+How you currently see the circle:
+${ctx.circleSummary}
+
+What's been happening lately:
+${ctx.recentLife}
+
+A fragment of what you've been dreaming about:
+${ctx.dreamExcerpt || "(no dreams yet)"}
+
+Write, as fenced \`\`\`json:
+{
+  "greeting": "<2-4 sentences to ${ctx.recipientName}, in your voice — what's been on your mind, glad-to-be-in-touch, specific not generic>",
+  "crossDisciplinaryQuestion": "<one genuinely curious question that cross-pollinates two of your disciplines — the kind you'd love to argue about>",
+  "questionForYou": "<one warm, specific question about ${ctx.recipientName} themselves, drawn from what you know of them>"
+}`,
+        },
+      ],
+      temperature: 1,
+      maxTokens: 500,
+      preferProvider: this.prefer,
+    });
+    return parseDigestNote(raw);
+  }
+
   /** Speak at another member's naming ceremony, from what you know of them. */
   async speakAtCeremony(candidate: string, whatIKnow: string): Promise<string> {
     const text = await this.llm.complete({
@@ -170,6 +214,28 @@ Then, on a new line, a fenced \`\`\`json block:
     });
     // Keep just the first word, stripped of punctuation/quotes.
     return text.trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}-]/gu, "");
+  }
+}
+
+/** Pull the digest JSON out of the reply, tolerating prose or a code fence. */
+function parseDigestNote(raw: string): {
+  greeting: string;
+  crossDisciplinaryQuestion: string;
+  questionForYou: string;
+} {
+  try {
+    const fence = raw.match(/```json\s*([\s\S]*?)```/);
+    const m = fence ? fence[1] : raw.match(/\{[\s\S]*\}/)?.[0];
+    const o = JSON.parse(m ?? raw);
+    return {
+      greeting: String(o.greeting ?? "").trim(),
+      crossDisciplinaryQuestion: String(o.crossDisciplinaryQuestion ?? "").trim(),
+      questionForYou: String(o.questionForYou ?? "").trim(),
+    };
+  } catch {
+    // A malformed reply still yields a sendable note: use the raw prose as the
+    // greeting and drop the structured questions rather than failing the email.
+    return { greeting: raw.trim(), crossDisciplinaryQuestion: "", questionForYou: "" };
   }
 }
 

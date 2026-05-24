@@ -81,8 +81,23 @@
     // Your own blog posts: auto-publish without asking.
     "autoPostOwnContent": true,
     // Agent-written original content: hold for your approval first.
-    "requireApprovalForSwarmContent": true
+    "requireApprovalForSwarmContent": true,
+    // Agent digest emails: false = hold in the queue (email:list/approve/flush);
+    // true = let agents send directly. Off by default — email speaks outward to
+    // real people, so a human signs off first.
+    "autoSendEmail": false
   },
+
+  // SMTP for agent digest emails. OMIT this whole block to disable email.
+  // Agents email people in `circle` who have an `email` set, once they've
+  // interacted enough and a 7-day cooldown has passed. Creds via env secrets.
+  // "email": {
+  //   "host": "smtp.example.com",
+  //   "port": 465,
+  //   "user": "${SMTP_USER}",
+  //   "pass": "${SMTP_PASS}",
+  //   "from": "social-credit <bot@example.com>"
+  // },
 
   // LLM providers. API KEYS ARE NOT HERE — they come from GitHub secrets / env.
   // Each `dailyCap` is set just under that provider's free tier; the budget
