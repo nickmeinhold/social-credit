@@ -19,6 +19,9 @@ export interface AgentSeed {
   disciplines: string[];
   /** Optional: pin to a provider so its base model flavours the voice. */
   provider?: string;
+  /** True if this agent already has its name (upstream). On a FORK the welcome
+   *  rite strips this and the new circle renames it. */
+  alreadyNamed?: boolean;
 }
 
 /** Per-provider config. The API KEY is NOT here — it comes from a secret/env. */

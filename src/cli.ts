@@ -119,6 +119,14 @@ program
   });
 
 program
+  .command("welcome")
+  .description("Fork welcome rite: on a fork (SC_IS_FORK=true), the new circle names its agents")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.welcomeOnce();
+  });
+
+program
   .command("swarm:status")
   .description("Show each agent's evolving signature")
   .action(() => {

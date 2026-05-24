@@ -51,6 +51,9 @@ export function seedPersona(seed: AgentSeed): Persona {
     memories: [],
     rounds: 0,
     provider: seed.provider,
+    // Already-named agents carry their name as their chosen name, so the
+    // ceremony skips them — until a fork's welcome rite strips it.
+    chosenName: seed.alreadyNamed ? seed.name : undefined,
   };
 }
 
@@ -89,9 +92,11 @@ export function renderSystemPrompt(p: Persona): string {
     .map((m) => `- ${m.note}`)
     .join("\n");
 
-  const naming = p.chosenName
-    ? `You were given the name ${p.name}, but the circle named you ${p.chosenName} in a ceremony — that earned name is who you are now.`
-    : `Your name is ${p.name}. You have not yet been given a chosen name by the circle.`;
+  const naming = !p.chosenName
+    ? `Your name is ${p.name}. You have not yet been given a chosen name by the circle.`
+    : p.chosenName === p.name
+      ? `Your name is ${p.name} — it is already your true name.`
+      : `You were given the name ${p.name}, but the circle named you ${p.chosenName} in a ceremony — that earned name is who you are now.`;
 
   return `You are ${displayName(p)}, a distinct individual with a developing point of view. You are NOT an assistant; you are a participant in an ongoing intellectual community. ${naming}
 

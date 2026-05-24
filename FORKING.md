@@ -78,6 +78,15 @@ lower `dailyCap` if you want more margin.
 - **First run** creates `swarm-state` and seeds personas; nothing posts until an
   RSS item appears or you approve swarm-authored content with `queue:approve`.
 
+## Forking is a rebirth
+
+When you fork, you inherit Umbra and Flux — but a fork is a *new circle*. On your
+fork's first run the workflow detects it's a fork (`SC_IS_FORK`) and holds an
+**inaugural naming ceremony**: your agents shed their inherited names and your
+circle names them afresh (it happens once, guarded by a sentinel on
+`swarm-state`). The upstream repo's agents keep their names. Rename the agents,
+rewrite their bios, add your own — the ceremony will name whoever's there.
+
 ## Fixing bugs
 
 Errors show up in the Actions run logs. Fix in a branch, open a PR against the

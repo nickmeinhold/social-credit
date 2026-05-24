@@ -40,7 +40,12 @@ jobs:
       - name: Restore swarm state
         run: bash scripts/state-sync.sh restore
 
-      - name: Reflect (dream + maybe a ceremony)
+      - name: Detect fork
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "SC_IS_FORK=$(gh api repos/${{ github.repository }} --jq .fork)" >> "$GITHUB_ENV"
+
+      - name: Reflect (welcome rite on a fork, then dream + maybe a ceremony)
         env:
           SC_DATA_DIR: .swarm-state/data
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

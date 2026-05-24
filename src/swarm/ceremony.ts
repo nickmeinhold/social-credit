@@ -36,20 +36,14 @@ function record(candidateName: string, chosen: string, transcript: string[]): vo
   writeFileSync(dataPath("ceremonies", `${chosen}.md`), body);
 }
 
-/**
- * Hold a ceremony if anyone is ready. Returns the bestowed name, or null if no
- * candidate had matured. Every other agent speaks; the elder names.
- */
-export async function maybeHoldCeremony(agents: Agent[], minRounds: number): Promise<string | null> {
-  if (agents.length < 2) return null;
-  const candidate = pickCandidate(agents, minRounds);
-  if (!candidate) return null;
-
+/** Name one candidate: everyone else speaks, the elder bestows. Returns the name. */
+async function nameOne(agents: Agent[], candidate: Agent): Promise<string> {
   const candName = candidate.persona.name;
   const others = agents.filter((a) => a !== candidate);
   const transcript: string[] = [`The circle gathers to name ${candName}.`];
 
-  // Everyone speaks, from what THEY personally know of the candidate.
+  // Everyone speaks, from what THEY personally know of the candidate (or, at a
+  // birth, from first impressions seeded by the candidate's origin).
   for (const speaker of others) {
     const rel = loadRelationship(speaker.persona.name, slug(candName));
     const whatIKnow = rel
@@ -60,17 +54,42 @@ export async function maybeHoldCeremony(agents: Agent[], minRounds: number): Pro
   }
 
   const elder = pickElder(agents, candidate);
-  const chosen =
-    (await elder.bestowName(candName, transcript.join("\n"))) || candName;
+  const chosen = (await elder.bestowName(candName, transcript.join("\n"))) || candName;
   transcript.push(`${displayName(elder.persona)} bestows the name: ${chosen}`);
 
-  // The candidate becomes their new name.
   candidate.persona.chosenName = chosen;
   remember(candidate.persona, `The circle named me ${chosen}`, 1);
   savePersona(candidate.persona);
   record(candName, chosen, transcript);
-
   return chosen;
+}
+
+/**
+ * Hold a ceremony if anyone is ready. Returns the bestowed name, or null if no
+ * candidate had matured. Every other agent speaks; the elder names.
+ */
+export async function maybeHoldCeremony(agents: Agent[], minRounds: number): Promise<string | null> {
+  if (agents.length < 2) return null;
+  const candidate = pickCandidate(agents, minRounds);
+  if (!candidate) return null;
+  return nameOne(agents, candidate);
+}
+
+/**
+ * The welcome rite for a FRESH FORK: every currently-unnamed agent is named by
+ * the circle, regardless of maturity. This is what "forking starts the naming
+ * ceremony" means — a new community christens its own agents from first
+ * impressions. Returns the names bestowed, in order.
+ */
+export async function inauguralCeremony(agents: Agent[]): Promise<string[]> {
+  if (agents.length < 2) return [];
+  const names: string[] = [];
+  // Snapshot the unnamed set first; we name them one by one.
+  const candidates = agents.filter((a) => !a.persona.chosenName);
+  for (const candidate of candidates) {
+    names.push(await nameOne(agents, candidate));
+  }
+  return names;
 }
 
 /** Match circle.ts's id convention (lowercased name). */

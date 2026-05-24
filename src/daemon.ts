@@ -26,9 +26,11 @@ import { Agent } from "./swarm/agent.js";
 import { runRound, type Candidate } from "./swarm/arena.js";
 import { seedPersona } from "./swarm/persona.js";
 import { loadPersona, savePersona } from "./swarm/store.js";
+import { existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { meet } from "./swarm/circle.js";
 import { dreamOne } from "./swarm/dream.js";
-import { maybeHoldCeremony } from "./swarm/ceremony.js";
+import { maybeHoldCeremony, inauguralCeremony } from "./swarm/ceremony.js";
+import { dataPath } from "./paths.js";
 import { enqueue, list, setStatus } from "./bridge/queue.js";
 
 export class Daemon {
@@ -111,6 +113,9 @@ export class Daemon {
           id: other.persona.name.toLowerCase(),
           name: other.persona.name,
           kind: "agent",
+          // Seed first impressions from the other's origin so a birth-naming
+          // has something to speak from.
+          bio: other.persona.seedBio,
         });
       }
     }
@@ -134,6 +139,28 @@ export class Daemon {
     console.log(`[dream] ${this.agents.length} agent(s) reflected`);
   }
 
+  /**
+   * The fork welcome rite. On a FORK only (SC_IS_FORK=true), and only once
+   * (guarded by a sentinel on the swarm-state branch), the agents shed their
+   * inherited names and the new circle names them afresh. Upstream this is a
+   * no-op, so the owner's already-named agents keep their names.
+   */
+  async welcomeOnce(): Promise<void> {
+    if (process.env.SC_IS_FORK !== "true") return;
+    const sentinel = dataPath(".welcomed");
+    if (existsSync(sentinel)) return;
+
+    console.log("[welcome] a new circle is born — holding the inaugural naming ceremony");
+    for (const a of this.agents) {
+      a.persona.chosenName = undefined; // shed the inherited name
+      savePersona(a.persona);
+    }
+    const names = await inauguralCeremony(this.agents);
+    mkdirSync(dataPath(), { recursive: true });
+    writeFileSync(sentinel, new Date().toISOString());
+    console.log(`[welcome] the circle named its own: ${names.join(", ")}`);
+  }
+
   /** Hold a naming ceremony if anyone has matured. */
   async ceremonyOnce(): Promise<void> {
     const named = await maybeHoldCeremony(this.agents, this.cfg.swarm.ceremonyMinRounds);
@@ -142,6 +169,7 @@ export class Daemon {
 
   /** The slow cadence: dream, then maybe a ceremony. Run by the reflect cron. */
   async reflectOnce(): Promise<void> {
+    await this.safe("welcome", () => this.welcomeOnce());
     await this.safe("dream", () => this.dreamOnce());
     await this.safe("ceremony", () => this.ceremonyOnce());
   }
@@ -153,6 +181,7 @@ export class Daemon {
    * Logs budget usage so the workflow output shows headroom against free tiers.
    */
   async tickOnce(): Promise<void> {
+    await this.safe("welcome", () => this.welcomeOnce());
     await this.safe("poll", () => this.pollSources());
     await this.safe("swarm", () => this.swarmTick());
     await this.safe("flush", () => this.flushQueue());

@@ -47,6 +47,13 @@ jobs:
       - name: Restore swarm state
         run: bash scripts/state-sync.sh restore
 
+      # Forks behave differently: on a fork's first tick the agents shed their
+      # inherited names and the new circle holds an inaugural naming ceremony.
+      - name: Detect fork
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "SC_IS_FORK=$(gh api repos/${{ github.repository }} --jq .fork)" >> "$GITHUB_ENV"
+
       - name: Tick
         env:
           SC_DATA_DIR: .swarm-state/data
