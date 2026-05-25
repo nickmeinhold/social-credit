@@ -12,6 +12,11 @@
  *   queue:list [status]  inspect the draft/post queue
  *   queue:approve <id>   approve a pending (e.g. swarm-authored) item
  *   queue:reject <id>    reject a pending item
+ *   email:tick           agents maybe write digest emails to their circle
+ *   email:list [status]  inspect the digest-email queue
+ *   email:approve <id>   approve a pending email so it sends on the next flush
+ *   email:reject <id>    reject a pending email
+ *   email:flush          send every approved-but-unsent email
  */
 import { Command } from "commander";
 import { writeFileSync, existsSync, copyFileSync } from "node:fs";
@@ -23,6 +28,16 @@ import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
 import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
+import { listEmails, setEmailStatus, type EmailStatus } from "./bridge/mailer.js";
+
+const EMAIL_STATUSES: EmailStatus[] = ["pending", "approved", "sent", "rejected"];
+/** Validate a CLI-supplied status against the closed set instead of casting to any. */
+function asEmailStatus(s?: string): EmailStatus | undefined {
+  if (s === undefined) return undefined;
+  if ((EMAIL_STATUSES as string[]).includes(s)) return s as EmailStatus;
+  console.error(`Unknown status "${s}". Expected one of: ${EMAIL_STATUSES.join(", ")}`);
+  process.exit(1);
+}
 
 const program = new Command();
 program.name("social-credit").description("Auto-syndicate your own content, powered by an evolving agent swarm.");
@@ -124,6 +139,49 @@ program
   .action(async () => {
     const d = new Daemon(loadConfig());
     await d.welcomeOnce();
+  });
+
+program
+  .command("email:tick")
+  .description("Maybe have agents write digest emails to their circle, then flush approved ones")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.emailOnce();
+  });
+
+program
+  .command("email:list [status]")
+  .description("List queued digest emails (optionally by status)")
+  .action((status?: string) => {
+    for (const e of listEmails(asEmailStatus(status))) {
+      console.log(
+        `${e.id}  ${e.status.padEnd(9)} ${e.fromAgent.padEnd(12)} -> ${e.toEmail.padEnd(28)} ${e.subject}`,
+      );
+    }
+  });
+
+program
+  .command("email:approve <id>")
+  .description("Approve a pending email so it sends on the next flush")
+  .action((id: string) => {
+    setEmailStatus(id, "approved");
+    console.log(`Approved email ${id}.`);
+  });
+
+program
+  .command("email:reject <id>")
+  .description("Reject a pending email")
+  .action((id: string) => {
+    setEmailStatus(id, "rejected");
+    console.log(`Rejected email ${id}.`);
+  });
+
+program
+  .command("email:flush")
+  .description("Send every approved-but-unsent email")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.flushEmails();
   });
 
 program
