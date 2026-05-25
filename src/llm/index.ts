@@ -7,12 +7,28 @@
  * keys. A provider only joins the router if it's enabled AND its key is present,
  * so a fork that only sets GEMINI_API_KEY just runs on Gemini.
  */
-import type { Config } from "../config.js";
+import type { Config, ProviderConfig } from "../config.js";
 import { BudgetRouter, type Capped } from "./router.js";
 import { AnthropicProvider } from "./anthropic.js";
 import { ClaudeCliProvider } from "./claude-cli.js";
 import { GeminiProvider } from "./gemini.js";
 import { OpenAICompatProvider } from "./openai.js";
+
+/**
+ * Pure gate for the upstream-owner gateway provider. The owner's credits are
+ * used ONLY when all three hold: the fork enabled the provider, it configured
+ * the gateway `baseURL`, and a `PROXY_TOKEN` grant is present in the env. Any
+ * gap → false → the fork falls back to its own free providers (no hard fail).
+ *
+ * Factored out as a pure function so the security-critical "default to NOT
+ * using the owner's creds" rule is directly unit-testable.
+ */
+export function gatewayGranted(
+  cfg: Pick<ProviderConfig, "enabled" | "baseURL"> | undefined,
+  proxyToken: string | undefined,
+): boolean {
+  return Boolean(cfg?.enabled && cfg.baseURL && proxyToken);
+}
 
 export function buildRouter(cfg: Config): BudgetRouter {
   const capped: Capped[] = [];
@@ -48,6 +64,23 @@ export function buildRouter(cfg: Config): BudgetRouter {
         dailyCap: p.github.dailyCap,
       });
     else console.warn("[llm] github enabled but no GITHUB_MODELS_TOKEN/GITHUB_TOKEN — skipping");
+  }
+
+  if (p.gateway?.enabled) {
+    // Upstream-owner credits "on request": the owner runs an OpenAI-compatible
+    // gateway holding their real keys and grants this fork a REVOCABLE token.
+    // Requires BOTH a baseURL (where the gateway lives) AND the PROXY_TOKEN
+    // secret (the grant). Missing either → skip, so an ungranted fork silently
+    // falls back to its own free providers instead of hard-failing.
+    const token = process.env.PROXY_TOKEN;
+    if (gatewayGranted(p.gateway, token))
+      capped.push({
+        llm: new OpenAICompatProvider(token!, p.gateway.model, p.gateway.baseURL, "gateway"),
+        dailyCap: p.gateway.dailyCap,
+      });
+    else if (!p.gateway.baseURL)
+      console.warn("[llm] gateway enabled but no baseURL configured — skipping");
+    else console.warn("[llm] gateway enabled but PROXY_TOKEN is unset (not granted) — skipping");
   }
 
   return new BudgetRouter(capped);

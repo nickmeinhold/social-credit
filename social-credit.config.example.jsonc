@@ -117,6 +117,20 @@
       "enabled": false,
       "model": "claude-haiku-4-5-20251001",
       "dailyCap": 0
+    },
+    // Upstream-owner credits, used "ON REQUEST" (see FORKING.md → "Borrowing the
+    // owner's LLM credits"). The owner runs an OpenAI-compatible gateway holding
+    // their real keys and grants you a REVOCABLE token, which you set as the
+    // PROXY_TOKEN secret. Both `baseURL` AND the PROXY_TOKEN secret must be
+    // present or this provider is skipped — so an ungranted fork just falls back
+    // to its own free providers. DEFAULT OFF: never uses the owner's credits
+    // unless you've been granted a token and explicitly enable this.
+    "gateway": {
+      "enabled": false,
+      "model": "gpt-4o-mini",
+      "dailyCap": 100,
+      "baseURL": "https://gateway.example/v1"
+      // The token is NOT here — it's the PROXY_TOKEN secret, env only.
     }
   },
 

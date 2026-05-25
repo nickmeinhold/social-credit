@@ -65,6 +65,9 @@ jobs:
           # Claude Max/Pro subscription (claudeMax provider). Mint with
           # `claude setup-token` on a logged-in machine.
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Owner's LLM credits via gateway (#51) — only if you've been granted a
+          # token and enabled providers.gateway. Unset = gateway is skipped.
+          PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
           # Social platforms — set the ones you post to.
           BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}

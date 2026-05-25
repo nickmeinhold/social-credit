@@ -17,6 +17,7 @@ import { Command } from "commander";
 import { writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { execSync } from "node:child_process";
 import { loadConfig } from "./config.js";
 import { Daemon } from "./daemon.js";
 import { buildAdapters } from "./platforms/index.js";
@@ -124,6 +125,43 @@ program
   .action(async () => {
     const d = new Daemon(loadConfig());
     await d.welcomeOnce();
+  });
+
+program
+  .command("request-credits")
+  .description("Print how to request the upstream owner's LLM credits (on request, revocable)")
+  .action(() => {
+    // The upstream is the fork's PARENT repo — derive it from GitHub via gh.
+    // (Circle `repo` fields are for the PR feature, NOT the upstream
+    // relationship, so they'd point at the wrong repo.) Fall back to the
+    // canonical slug if gh/network is unavailable or this isn't a fork.
+    let repo = "nickmeinhold/social-credit";
+    try {
+      const parent = execSync("gh repo view --json parent -q .parent.nameWithOwner", {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (parent) repo = parent;
+    } catch {
+      // Not in a repo / gh unavailable / not a fork — keep the canonical slug.
+    }
+    const url = `https://github.com/${repo}/issues/new?template=request-owner-llm-credits.md`;
+    console.log(
+      [
+        "Borrowing the upstream owner's LLM credits is on-request and revocable.",
+        "",
+        "1. Open an issue on the upstream repo using the request template:",
+        `   ${url}`,
+        "2. The owner grants you a token OUT-OF-BAND (never in the issue).",
+        "3. In YOUR fork: add it as the PROXY_TOKEN secret, set",
+        "   providers.gateway.enabled: true, and confirm baseURL matches the",
+        "   gateway the owner gave you.",
+        "",
+        "The token is read from the PROXY_TOKEN env only — never put it in config",
+        "or a commit. Without a grant your fork falls back to its own free",
+        "providers (GitHub Models is free, zero secrets). See FORKING.md.",
+      ].join("\n"),
+    );
   });
 
 program

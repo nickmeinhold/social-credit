@@ -20,6 +20,7 @@ Set only the ones you want:
 | `GEMINI_API_KEY` | Gemini provider | ✅ ~1,500 flash req/day |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Claude via **Max/Pro plan** | ♻️ uses the subscription you already pay for |
 | `ANTHROPIC_API_KEY` | Claude via **API key** | ❌ per-token, trial credits / paid |
+| `PROXY_TOKEN` | **Owner's LLM credits via gateway** (on request) | ♻️ granted case-by-case, see below |
 | `BSKY_APP_PASSWORD` | post to Bluesky | ✅ |
 | `MASTODON_TOKEN` | post to Mastodon | ✅ |
 | `LINKEDIN_TOKEN` | post to LinkedIn | needs an approved app |
@@ -66,6 +67,54 @@ Enable whichever you have (or both — they're separate providers to the router)
 compose` ≈ 5–12 calls. At 48 ticks/day that's ~250–600 calls, split across
 providers — comfortably under the combined caps. Bump the cron interval or
 lower `dailyCap` if you want more margin.
+
+## Borrowing the owner's LLM credits (on request)
+
+The default credential model is simple: **your fork uses your own tokens, set as
+your own secrets.** Nothing of the upstream owner's leaks into your fork, and
+your keys never reach theirs.
+
+But you don't have to bring your own LLM access at all. The upstream owner can,
+**on request and case-by-case**, let your fork run on *their* LLM credits. This
+is opt-in, revocable at any time, and off by default.
+
+**How it works.** The owner runs an OpenAI-compatible **gateway** that holds
+their real provider keys and issues a per-fork, revocable `PROXY_TOKEN`. Your
+fork never sees the owner's real keys — only a token the owner can switch off.
+The `gateway` provider points the OpenAI-compatible adapter's `baseURL` at the
+gateway and authenticates with that token.
+
+**To request access:**
+
+1. Open an issue on the **upstream** repo using the *"Request owner LLM credits"*
+   template (or run `social-credit request-credits` locally, which prints the
+   exact issue link and what to include). Say which fork you're running and
+   roughly how much you expect to use.
+2. The owner grants you a token **out-of-band** (e.g. a DM / reply) — never
+   posted in the issue.
+3. In **your** fork: add the token as the `PROXY_TOKEN` secret, set
+   `providers.gateway.enabled: true` in your config, and confirm `baseURL`
+   matches the gateway the owner gave you.
+
+**Safety rails baked into the code:**
+
+- The token is **only ever read from the environment** (`PROXY_TOKEN`). It is
+  never written to config and must never be committed.
+- The `gateway` provider joins the router **only if** it's enabled AND a
+  `baseURL` is configured AND `PROXY_TOKEN` is set. Miss any one and it's simply
+  skipped — your fork runs on its own free providers (GitHub Models is free and
+  needs zero secrets). So an **absent** grant never hard-fails a run.
+- **Revocation, precisely.** The owner revokes by invalidating the token at the
+  gateway. Until you also **remove `PROXY_TOKEN`** from your fork's secrets, the
+  gateway provider stays in the router and its calls will fail that tick (the
+  router does not yet fail over to another provider on an auth error — see the
+  follow-up task). So revocation is two steps: owner invalidates server-side,
+  *and* you unset the secret (or set `providers.gateway.enabled: false`). Once
+  the token is gone, you cleanly fall back to your own free providers.
+- The token authenticates as `Authorization: Bearer` to whatever `baseURL` you
+  configure — so **a change to `providers.gateway.baseURL` is a token-security
+  change** (it sends the granted token to a new endpoint). Treat baseURL edits
+  as security-relevant in review.
 
 ## Gotchas (read these)
 

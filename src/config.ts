@@ -1,10 +1,10 @@
 /**
  * Config loading + validation.
  *
- * Config lives in `social-credit.config.jsonc` (gitignored — it holds tokens).
- * We support `${ENV_VAR}` interpolation so secrets can live in the environment
- * instead of on disk. JSONC is parsed by stripping comments then JSON.parse —
- * good enough for a hand-edited config and avoids a dependency.
+ * Config lives in `social-credit.config.jsonc`, which is COMMITTED and holds NO
+ * secrets — every credential is a `${ENV_VAR}` reference resolved from the
+ * environment (GitHub secrets), never a literal. JSONC is parsed by stripping
+ * comments then JSON.parse — good enough for a hand-edited config, no dependency.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -75,6 +75,14 @@ export interface Config {
     claudeMax?: ProviderConfig;
     gemini?: ProviderConfig;
     github?: ProviderConfig;
+    /**
+     * Upstream-owner LLM credits, used "on request". The owner runs an
+     * OpenAI-compatible gateway holding their real keys and issues a per-fork
+     * REVOCABLE token. A fork points `baseURL` at that gateway and supplies the
+     * granted token via the `PROXY_TOKEN` secret (env only — never committed).
+     * Disabled by default: a fork must be explicitly granted access and opt in.
+     */
+    gateway?: ProviderConfig;
   };
   /** How often the daemon polls RSS sources, in ms (daemon mode only). */
   pollIntervalMs: number;
