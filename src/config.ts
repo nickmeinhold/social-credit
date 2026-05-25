@@ -141,9 +141,14 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
       autoSendEmail: false,
       ...parsed.bridge,
     },
-    // Only treat email as configured if a host actually came through (an empty
-    // ${SMTP_HOST} interpolates to "" for forks that haven't set the secret).
-    email: parsed.email?.host ? parsed.email : undefined,
+    // Only treat email as configured if EVERY required field came through. An
+    // unset ${SMTP_*} secret interpolates to "", so a block with a literal host
+    // but empty creds must NOT count as enabled — otherwise every send fails and
+    // retries forever. All four required fields must be non-empty.
+    email:
+      parsed.email?.host && parsed.email?.user && parsed.email?.pass && parsed.email?.from
+        ? parsed.email
+        : undefined,
     providers: parsed.providers ?? {},
     ownerName: parsed.ownerName ?? "your human",
     circle: parsed.circle ?? [],

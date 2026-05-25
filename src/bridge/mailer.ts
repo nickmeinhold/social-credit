@@ -69,12 +69,30 @@ export function listEmails(status?: EmailStatus): EmailItem[] {
   return status ? items.filter((i) => i.status === status) : items;
 }
 
+/**
+ * Legal status transitions. Sending a real email is irreversible, so `sent`
+ * and `rejected` are terminal — you cannot re-`approve` a `sent` message and
+ * have the next flush mail it to a real person a second time. A same-state
+ * write (e.g. approved->approved to record a transient send error) is allowed.
+ */
+const ALLOWED_TRANSITIONS: Record<EmailStatus, EmailStatus[]> = {
+  pending: ["approved", "rejected"],
+  approved: ["sent", "rejected"],
+  sent: [],
+  rejected: [],
+};
+
 export function setEmailStatus(id: string, status: EmailStatus, patch?: Partial<EmailItem>): void {
   const items = read();
   const it = items.find((i) => i.id === id);
   if (!it) throw new Error(`No email ${id}`);
+  if (it.status !== status && !ALLOWED_TRANSITIONS[it.status].includes(status)) {
+    throw new Error(
+      `Illegal email transition ${it.status} -> ${status} for ${id} (a sent email cannot be resent)`,
+    );
+  }
   it.status = status;
-  Object.assign(it, patch);
+  if (patch) Object.assign(it, patch);
   write(items);
 }
 

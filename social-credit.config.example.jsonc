@@ -90,13 +90,15 @@
 
   // SMTP for agent digest emails. OMIT this whole block to disable email.
   // Agents email people in `circle` who have an `email` set, once they've
-  // interacted enough and a 7-day cooldown has passed. Creds via env secrets.
+  // interacted enough and a 7-day cooldown has passed. ALL of host/user/pass/
+  // from must resolve non-empty or email stays disabled (so an unset secret
+  // can't half-enable a broken sender). Set the SMTP_* GitHub secrets.
   // "email": {
-  //   "host": "smtp.example.com",
+  //   "host": "${SMTP_HOST}",
   //   "port": 465,
   //   "user": "${SMTP_USER}",
   //   "pass": "${SMTP_PASS}",
-  //   "from": "social-credit <bot@example.com>"
+  //   "from": "${SMTP_FROM}"
   // },
 
   // LLM providers. API KEYS ARE NOT HERE — they come from GitHub secrets / env.

@@ -151,6 +151,10 @@ export class Daemon {
    * `bridge.autoSendEmail` is on; flushEmails() does the actual sending.
    */
   async emailOnce(): Promise<void> {
+    // Composing burns LLM quota and stamps cooldown/persona state, so don't do
+    // it at all unless email can actually be delivered. No SMTP config = no
+    // composition (rather than queueing mail that flushEmails can never send).
+    if (!this.cfg.email) return;
     const recent = this.recentSummary();
     for (const agent of this.agents) {
       const name = agent.persona.name;

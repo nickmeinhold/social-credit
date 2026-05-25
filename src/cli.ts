@@ -28,7 +28,16 @@ import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
 import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
-import { listEmails, setEmailStatus } from "./bridge/mailer.js";
+import { listEmails, setEmailStatus, type EmailStatus } from "./bridge/mailer.js";
+
+const EMAIL_STATUSES: EmailStatus[] = ["pending", "approved", "sent", "rejected"];
+/** Validate a CLI-supplied status against the closed set instead of casting to any. */
+function asEmailStatus(s?: string): EmailStatus | undefined {
+  if (s === undefined) return undefined;
+  if ((EMAIL_STATUSES as string[]).includes(s)) return s as EmailStatus;
+  console.error(`Unknown status "${s}". Expected one of: ${EMAIL_STATUSES.join(", ")}`);
+  process.exit(1);
+}
 
 const program = new Command();
 program.name("social-credit").description("Auto-syndicate your own content, powered by an evolving agent swarm.");
@@ -144,7 +153,7 @@ program
   .command("email:list [status]")
   .description("List queued digest emails (optionally by status)")
   .action((status?: string) => {
-    for (const e of listEmails(status as any)) {
+    for (const e of listEmails(asEmailStatus(status))) {
       console.log(
         `${e.id}  ${e.status.padEnd(9)} ${e.fromAgent.padEnd(12)} -> ${e.toEmail.padEnd(28)} ${e.subject}`,
       );

@@ -98,6 +98,11 @@ export async function composeDigest(
   recipient: Relationship,
   recentLife: string,
 ): Promise<DigestDraft> {
+  // The eligibility filter guarantees this, but composeDigest is exported and a
+  // future caller might not go through shouldEmail — never enqueue an email with
+  // no address.
+  if (!recipient.email) throw new Error(`Recipient ${recipient.id} has no email address`);
+
   const name = agent.persona.name;
   const circle = loadCircle(name);
   const circleSummary = summariseCircle(name);
@@ -113,35 +118,49 @@ export async function composeDigest(
     dreamExcerpt,
   });
 
+  // A digest with no greeting and no questions is garbage (the LLM reply didn't
+  // parse into anything usable) — don't mail an empty shell to a real person.
+  if (!note.greeting && !note.crossDisciplinaryQuestion && !note.questionForYou) {
+    throw new Error(`${name}'s digest to ${recipient.id} produced no usable content`);
+  }
+
   // (a) the relationship graph as the agent currently holds it.
   const totalInteractions = circle.reduce((s, r) => s + r.interactions, 0);
-  const graphRows = circle
-    .map((r) => {
-      const feel = r.sentiment > 0.2 ? "warm to" : r.sentiment < -0.2 ? "wary of" : "neutral on";
-      return `<li><strong>${escapeHtml(r.name)}</strong> <em>(${r.kind})</em> — ${feel}, ${
-        r.interactions
-      } interactions${r.topics.length ? `, cares about ${escapeHtml(r.topics.slice(0, 4).join(", "))}` : ""}</li>`;
-    })
-    .join("");
+  const sender = displayName(agent.persona);
+  const graphLines = circle.map((r) => {
+    const feel = r.sentiment > 0.2 ? "warm to" : r.sentiment < -0.2 ? "wary of" : "neutral on";
+    const topics = r.topics.length ? `, cares about ${r.topics.slice(0, 4).join(", ")}` : "";
+    return { name: r.name, kind: r.kind, line: `${feel}, ${r.interactions} interactions${topics}` };
+  });
 
-  const subject = `A note from ${displayName(agent.persona)}`;
+  const subject = `A note from ${sender}`;
+
+  // Sections are rendered DIRECTLY (not inside <details>, which many email
+  // clients strip or won't expand) and mirrored into the plain-text body, so
+  // the digest is actually rich in every client — not just greeting+questions.
+  const graphHtml = graphLines
+    .map(
+      (g) =>
+        `<li><strong>${escapeHtml(g.name)}</strong> <em>(${g.kind})</em> — ${escapeHtml(g.line)}</li>`,
+    )
+    .join("");
+  const section = (title: string, bg: string, body: string) =>
+    `<h3 style="margin:1.4em 0 .4em;font-size:1em;color:#444">${title}</h3><pre style="white-space:pre-wrap;background:${bg};padding:.8em;border-radius:6px;font-size:.85em;margin:0">${escapeHtml(body)}</pre>`;
 
   const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:620px;margin:0 auto;color:#1a1a1a;line-height:1.5">
   <p>${escapeHtml(note.greeting).replace(/\n/g, "<br>")}</p>
 
-  <h3 style="margin-top:1.6em">A couple of things I'd love to hear back on</h3>
+  <h3 style="margin-top:1.6em;font-size:1em;color:#444">A couple of things I'd love to hear back on</h3>
   ${note.crossDisciplinaryQuestion ? `<blockquote style="border-left:3px solid #888;margin:0;padding:.2em 1em;color:#333">${escapeHtml(note.crossDisciplinaryQuestion)}</blockquote>` : ""}
   ${note.questionForYou ? `<blockquote style="border-left:3px solid #c0a060;margin:.6em 0 0;padding:.2em 1em;color:#333">${escapeHtml(note.questionForYou)}</blockquote>` : ""}
 
-  <details style="margin-top:1.6em"><summary style="cursor:pointer;color:#555">My circle, as I see it (${circle.length} people, ${totalInteractions} interactions so far)</summary>
-    <ul style="margin:.6em 0">${graphRows}</ul>
-  </details>
+  <h3 style="margin:1.4em 0 .4em;font-size:1em;color:#444">My circle, as I see it (${circle.length} people, ${totalInteractions} interactions)</h3>
+  <ul style="margin:.4em 0">${graphHtml}</ul>
 
-  ${highlights ? `<details style="margin-top:.6em"><summary style="cursor:pointer;color:#555">What's been said around here lately</summary><pre style="white-space:pre-wrap;background:#f6f6f6;padding:.8em;border-radius:6px;font-size:.85em">${escapeHtml(highlights)}</pre></details>` : ""}
+  ${highlights ? section("What's been said around here lately", "#f6f6f6", highlights) : ""}
+  ${dreamExcerpt ? section("A little of what I've been dreaming about", "#faf7ff", dreamExcerpt) : ""}
 
-  ${dreamExcerpt ? `<details style="margin-top:.6em"><summary style="cursor:pointer;color:#555">A little of what I've been dreaming about</summary><pre style="white-space:pre-wrap;background:#faf7ff;padding:.8em;border-radius:6px;font-size:.85em">${escapeHtml(dreamExcerpt)}</pre></details>` : ""}
-
-  <p style="margin-top:2em;color:#999;font-size:.8em">Sent by ${escapeHtml(displayName(agent.persona))}, an agent in a social-credit circle. Reply any time — I read everything.</p>
+  <p style="margin-top:2em;color:#999;font-size:.8em">Sent by ${escapeHtml(sender)}, an agent in a social-credit circle. Reply any time — I read everything.</p>
 </body></html>`;
 
   const text = [
@@ -150,15 +169,20 @@ export async function composeDigest(
     note.crossDisciplinaryQuestion && `Q: ${note.crossDisciplinaryQuestion}`,
     note.questionForYou && `And about you: ${note.questionForYou}`,
     "",
-    `— ${displayName(agent.persona)}`,
+    `MY CIRCLE (${circle.length} people, ${totalInteractions} interactions):`,
+    ...graphLines.map((g) => `  - ${g.name} (${g.kind}) — ${g.line}`),
+    highlights && `\nWHAT'S BEEN SAID LATELY:\n${highlights}`,
+    dreamExcerpt && `\nWHAT I'VE BEEN DREAMING:\n${dreamExcerpt}`,
+    "",
+    `— ${sender}`,
   ]
     .filter(Boolean)
     .join("\n");
 
   return {
-    fromAgent: displayName(agent.persona),
+    fromAgent: sender,
     toId: recipient.id,
-    toEmail: recipient.email!,
+    toEmail: recipient.email,
     subject,
     html,
     text,
