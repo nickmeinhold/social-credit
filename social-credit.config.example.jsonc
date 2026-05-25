@@ -76,6 +76,38 @@
     ]
   },
 
+  // Discriminating cross-repo / social ENGAGEMENT: turning the swarm's boosts
+  // into REAL outward actions — a GitHub star on a circle member's repo
+  // (internal surface) and a like/repost of a boosted social post (external
+  // surface, via the platform adapter).
+  //
+  // DISABLED BY DEFAULT and inert unless you turn it on — like everything that
+  // touches a third party's account. Leave this block out (or enabled:false)
+  // and nothing here ever fires.
+  //
+  // THE RING-PROTECTION POLICY — READ BEFORE TUNING (forkers: this is the part
+  // that keeps your account off the ban-list):
+  //   What gets accounts banned is COORDINATED RECIPROCAL automation — "A stars
+  //   B the instant B stars A", everyone starring everyone, in tight bursts.
+  //   The protection is NOT selectivity (boostThreshold stays low — this is a
+  //   warm circle). The protection is three things, all enforced in code:
+  //     1. rate limit: dailyCap + minIntervalMs + random jitter (no metronome).
+  //     2. NON-RECIPROCITY: never mirror, never star-all-members, never engage
+  //        the same person twice in a day. LOPSIDED outcomes are the GOAL —
+  //        real affinity is lopsided.
+  //     3. disabled by default.
+  //   Do NOT raise these into a tit-for-tat exchange to "be fair". Unfairness
+  //   (you engage them, they never engage you) is the safe, human-looking shape.
+  "engagement": {
+    "enabled": false,
+    // Hard ceiling on outward actions per UTC day. Keep it small.
+    "dailyCap": 10,
+    // Minimum gap between two outward actions, in ms (before jitter).
+    "minIntervalMs": 90000,
+    // Random extra delay on top, in ms: actual gap = minInterval + rand(0..jitter).
+    "jitterMs": 60000
+  },
+
   // The bridge policy between the swarm/sources and real posting.
   "bridge": {
     // Your own blog posts: auto-publish without asking.

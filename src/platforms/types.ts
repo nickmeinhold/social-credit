@@ -28,6 +28,25 @@ export interface PublishResult {
   id?: string;
 }
 
+/**
+ * A reference to an EXISTING post we want to engage with (like/repost), as
+ * opposed to one we're authoring. Different platforms identify a post
+ * differently, so we carry both a web URL and the native id where we have it.
+ */
+export interface PostRef {
+  /** The post's public web URL (e.g. a bsky.app or Mastodon permalink). */
+  url?: string;
+  /** Platform-native id when known (AT-proto at:// URI, Mastodon status id). */
+  id?: string;
+}
+
+/** The receipt for a successful engagement (like/repost). */
+export interface EngageResult {
+  platform: string;
+  /** Native id of the created like/repost record, when the API returns one. */
+  id?: string;
+}
+
 export interface PlatformAdapter {
   /** Stable key, e.g. "bluesky". Must match the config key. */
   readonly name: string;
@@ -40,4 +59,17 @@ export interface PlatformAdapter {
 
   /** Publish a post AS THE USER. Throws on failure. */
   publish(post: Post): Promise<PublishResult>;
+
+  /**
+   * Like/favourite an existing post AS THE USER. Optional: not every platform's
+   * API exposes it (LinkedIn doesn't, without extra product approval), so the
+   * daemon checks for the method before calling. Throws on failure.
+   *
+   * Outward side effect on a third party's post — gated by the engagement
+   * policy (rate limit + non-reciprocity + jitter) before it's ever called.
+   */
+  like?(ref: PostRef): Promise<EngageResult>;
+
+  /** Repost/reblog an existing post AS THE USER. Optional; same gating as `like`. */
+  repost?(ref: PostRef): Promise<EngageResult>;
 }
