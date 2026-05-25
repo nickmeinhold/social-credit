@@ -23,6 +23,7 @@ import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
 import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
+import { history as engagementHistory } from "./bridge/engagement.js";
 
 const program = new Command();
 program.name("social-credit").description("Auto-syndicate your own content, powered by an evolving agent swarm.");

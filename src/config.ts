@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Person } from "./swarm/circle.js";
+import { type EngagementConfig, ENGAGEMENT_DEFAULTS } from "./bridge/engagement.js";
 
 export interface AgentSeed {
   /** Display name / handle inside the sandbox. */
@@ -76,6 +77,14 @@ export interface Config {
     gemini?: ProviderConfig;
     github?: ProviderConfig;
   };
+  /**
+   * Discriminating cross-repo/social engagement: turning swarm boosts into REAL
+   * GitHub stars (internal circle) and likes/reposts (external social). INERT
+   * unless explicitly enabled — like the (scaffolded) email feature, doing
+   * nothing is the safe default. The ring-protection policy lives in
+   * `bridge/engagement.ts`.
+   */
+  engagement: EngagementConfig;
   /** How often the daemon polls RSS sources, in ms (daemon mode only). */
   pollIntervalMs: number;
 }
@@ -130,6 +139,11 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
     providers: parsed.providers ?? {},
     ownerName: parsed.ownerName ?? "your human",
     circle: parsed.circle ?? [],
+    // All-or-disabled gating (mirrors how email/platforms gate): an absent block
+    // OR an explicit enabled:false leaves the feature fully inert. We merge over
+    // defaults so a partial block (e.g. just enabled+dailyCap) still gets a sane
+    // minInterval/jitter rather than zero (which would defeat the ring guard).
+    engagement: { ...ENGAGEMENT_DEFAULTS, ...parsed.engagement },
     pollIntervalMs: parsed.pollIntervalMs ?? DEFAULTS.pollIntervalMs,
   };
 

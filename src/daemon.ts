@@ -32,6 +32,17 @@ import { dreamOne } from "./swarm/dream.js";
 import { maybeHoldCeremony, inauguralCeremony } from "./swarm/ceremony.js";
 import { dataPath } from "./paths.js";
 import { enqueue, list, setStatus } from "./bridge/queue.js";
+import {
+  decide,
+  history as engagementHistory,
+  record as recordEngagement,
+  jitteredDelay,
+  type EngagementKind,
+  type EngagementSurface,
+} from "./bridge/engagement.js";
+import { starRepo, isRepoSlug } from "./bridge/github-star.js";
+import type { Boost } from "./swarm/arena.js";
+import type { PostRef } from "./platforms/types.js";
 
 export class Daemon {
   private adapters: PlatformAdapter[];
@@ -80,10 +91,137 @@ export class Daemon {
       if (d.kind === "original") {
         enqueue("swarm", { text: d.text }, !this.cfg.bridge.requireApprovalForSwarmContent);
       }
-      // Boosts currently surface in the transcript; wiring them to native
-      // repost/like endpoints per platform is the next adapter capability.
+      // Boosts no longer just surface in the transcript — `engageBoosts` below
+      // turns them into REAL stars/likes/reposts, gated by the engagement policy.
     }
     console.log(`[swarm] round done — ${boosts.length} boost(s), ${drafts.length} draft(s)`);
+    await this.engageBoosts(boosts);
+  }
+
+  /**
+   * Turn the round's boosts into REAL outward engagement — but discriminatingly,
+   * never as a ring. Two surfaces:
+   *   - INTERNAL circle: a GitHub star on a circle member's repo.
+   *   - EXTERNAL social: a like/repost of the boosted post on the platform it
+   *     came from.
+   *
+   * Every candidate action passes through `decide()` (the ring-protection
+   * policy: daily cap + min interval + non-reciprocity + dedupe). We process one
+   * boost at a time, sleeping a jittered interval between successful actions so
+   * the cadence never looks like a bot metronome. Anything `decide` rejects is
+   * skipped with a logged reason and NOT retried this round.
+   *
+   * Inert unless `engagement.enabled` — the default. We still take the early
+   * return cheaply so a disabled fork pays nothing.
+   */
+  async engageBoosts(boosts: Boost[]): Promise<void> {
+    const cfg = this.cfg.engagement;
+    if (!cfg.enabled || cfg.dailyCap <= 0) return;
+
+    for (const boost of boosts) {
+      const action = this.resolveEngagement(boost);
+      if (!action) continue; // boost didn't map to anyone we can engage
+
+      // decide() is re-read each iteration so an action performed earlier this
+      // round counts against the cap/interval/reciprocity for the next.
+      const verdict = decide(cfg, engagementHistory(), {
+        kind: action.kind,
+        actor: action.actor,
+        target: action.target,
+      });
+      if (verdict !== "ok") {
+        console.log(`[engage] skip ${action.kind} ${action.target}: ${verdict}`);
+        continue;
+      }
+
+      try {
+        await action.perform();
+        recordEngagement({
+          kind: action.kind,
+          surface: action.surface,
+          actor: action.actor,
+          target: action.target,
+        });
+        console.log(`[engage] ${action.kind} ${action.target} (actor ${action.actor})`);
+      } catch (err) {
+        console.error(`[engage] ${action.kind} ${action.target} FAILED:`, (err as Error).message);
+        continue; // a failed action isn't recorded, so it isn't a "real" engagement
+      }
+
+      // Jittered pause before the NEXT action — the metronome-breaker. We only
+      // pause after a successful action (skips are free and instant).
+      await sleep(jitteredDelay(cfg));
+    }
+  }
+
+  /**
+   * Map a boost to a concrete, performable engagement, or null if it doesn't
+   * correspond to anyone in the circle / any engageable post. This is the
+   * NON-reciprocity-by-construction point: we engage based on what the swarm
+   * found worth boosting (`actor` = the content's owner), never "because they
+   * engaged us" — we have no inbound-engagement signal and deliberately don't
+   * build one.
+   */
+  private resolveEngagement(boost: Boost):
+    | {
+        kind: EngagementKind;
+        surface: EngagementSurface;
+        actor: string;
+        target: string;
+        perform: () => Promise<void>;
+      }
+    | null {
+    const link = boost.target.link;
+
+    // INTERNAL: the boosted content belongs to a circle member with a GitHub
+    // repo (matched by the repo URL appearing in the link) -> star that repo.
+    for (const person of this.cfg.circle) {
+      if (!person.repo || !isRepoSlug(person.repo)) continue;
+      if (link && link.toLowerCase().includes(`github.com/${person.repo.toLowerCase()}`)) {
+        return {
+          kind: "star",
+          surface: "github",
+          actor: person.id,
+          target: person.repo,
+          perform: async () => void (await starRepo(person.repo!)),
+        };
+      }
+    }
+
+    // EXTERNAL: the boosted content is a social post -> like it on the platform
+    // it came from, if that adapter supports `like`. The post's host identifies
+    // the platform; the author handle (from the URL) is the reciprocity actor.
+    if (link) {
+      const ext = this.matchSocialLink(link);
+      if (ext) {
+        const adapter = this.adapters.find((a) => a.name === ext.surface);
+        if (adapter?.like) {
+          const ref: PostRef = { url: link };
+          return {
+            kind: "like",
+            surface: ext.surface,
+            actor: ext.actor,
+            target: link,
+            perform: async () => void (await adapter.like!(ref)),
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /** Identify a social post URL's platform + author handle, or null. */
+  private matchSocialLink(
+    link: string,
+  ): { surface: Extract<EngagementSurface, "bluesky" | "mastodon">; actor: string } | null {
+    const bsky = link.match(/bsky\.app\/profile\/([^/]+)\/post\//);
+    if (bsky) return { surface: "bluesky", actor: bsky[1] };
+    // Mastodon permalinks look like https://instance/@user/123 — the host+user
+    // identify the actor for reciprocity purposes.
+    const masto = link.match(/^https?:\/\/([^/]+)\/@([^/]+)\/\d+/);
+    if (masto) return { surface: "mastodon", actor: `${masto[2]}@${masto[1]}` };
+    return null;
   }
 
   /** Publish everything currently approved-but-unposted. */
@@ -232,4 +370,9 @@ export class Daemon {
     this.timers.forEach(clearInterval);
     this.timers = [];
   }
+}
+
+/** Await `ms` milliseconds. Used to space out outward engagements (jitter). */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
