@@ -23,7 +23,7 @@ import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
 import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
-import { listPRs, setPRStatus } from "./bridge/prs.js";
+import { listPRs, setPRStatus, parsePRStatus } from "./bridge/prs.js";
 
 const program = new Command();
 program.name("social-credit").description("Auto-syndicate your own content, powered by an evolving agent swarm.");
@@ -180,7 +180,10 @@ program
   .command("prs:list [status]")
   .description("List proposed PRs (optionally by status: pending|approved|opened|rejected)")
   .action((status?: string) => {
-    for (const p of listPRs(status as any)) {
+    if (status && !parsePRStatus(status)) {
+      return console.error(`Unknown status "${status}" — use pending|approved|opened|rejected.`);
+    }
+    for (const p of listPRs(parsePRStatus(status))) {
       const where = p.prUrl ? ` ${p.prUrl}` : "";
       console.log(
         `${p.id}  ${p.status.padEnd(9)} ${p.fromAgent.padEnd(10)} ${p.repo.padEnd(24)} ${p.title.slice(0, 50)}${where}`,

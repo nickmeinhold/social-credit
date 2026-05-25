@@ -27,10 +27,19 @@
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { resolve, sep } from "node:path";
 import { DATA_DIR, dataPath } from "../paths.js";
 import type { Config } from "../config.js";
 
 export type PRStatus = "pending" | "approved" | "opened" | "rejected";
+
+const PR_STATUSES = ["pending", "approved", "opened", "rejected"] as const;
+
+/** Narrow an untrusted string (e.g. a CLI arg) to a PRStatus, or undefined if
+ *  it isn't a valid status. Avoids `as any` casts on the CLI boundary. */
+export function parsePRStatus(s: string | undefined): PRStatus | undefined {
+  return s && (PR_STATUSES as readonly string[]).includes(s) ? (s as PRStatus) : undefined;
+}
 
 /** A single file change the PR will make. Kept tiny — agents propose small,
  *  reviewable diffs, not sweeping rewrites. */
@@ -96,6 +105,32 @@ export function allowedRepos(cfg: Config): Set<string> {
 /** True iff `repo` is on the allowlist. Off-allowlist repos are rejected. */
 export function isRepoAllowed(repo: string, cfg: Config): boolean {
   return allowedRepos(cfg).has(normaliseRepo(repo));
+}
+
+/**
+ * Resolve a proposed change path INSIDE a clone dir, refusing anything that
+ * would escape it or touch repo internals. The `path` on a `PRChange` comes
+ * from parsed LLM output, so it is hostile input: a hallucinating or adversarial
+ * model could emit `../../../../etc/passwd`, an absolute path, or `.git/config`
+ * to achieve an arbitrary local file write or to rewrite git's own state. We
+ * resolve against `repoDir` and require the result to stay strictly within it,
+ * and we forbid writes into a `.git` segment. Returns the safe absolute path;
+ * throws on any escape attempt.
+ */
+export function safeChangePath(repoDir: string, changePath: string): string {
+  const base = resolve(repoDir);
+  const full = resolve(base, changePath);
+  // Must be base itself's child: prefix with the separator so "/repo-evil" can't
+  // pass a naive startsWith("/repo") check.
+  if (full !== base && !full.startsWith(base + sep)) {
+    throw new Error(`illegal change path escapes the repo: ${changePath}`);
+  }
+  // Never let an agent write into git's own metadata.
+  const rel = full.slice(base.length + 1);
+  if (rel === ".git" || rel.startsWith(".git" + sep)) {
+    throw new Error(`illegal change path targets .git: ${changePath}`);
+  }
+  return full;
 }
 
 /**

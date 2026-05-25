@@ -145,7 +145,8 @@ export class Daemon {
     for (const item of listPRs("approved")) {
       try {
         const url = await openPR(item, this.cfg);
-        setPRStatus(item.id, "opened", { openedAt: new Date().toISOString(), prUrl: url });
+        // Clear any stale error from a prior failed-then-retried open.
+        setPRStatus(item.id, "opened", { openedAt: new Date().toISOString(), prUrl: url, error: undefined });
         console.log(`[prs] ${item.id} -> opened ${url}`);
       } catch (err) {
         // Stay "approved" so a later flush can retry; record why.

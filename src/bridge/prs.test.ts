@@ -22,7 +22,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 process.env.SC_DATA_DIR = mkdtempSync(join(tmpdir(), "sc-prs-"));
-const { enqueuePR, setPRStatus, listPRs, allowedRepos, isRepoAllowed } = await import("./prs.js");
+const { enqueuePR, setPRStatus, listPRs, allowedRepos, isRepoAllowed, safeChangePath, parsePRStatus } =
+  await import("./prs.js");
 
 function draft() {
   return {
@@ -129,4 +130,38 @@ test("same-state write is allowed (recording a transient open error keeps it app
   setPRStatus(item.id, "approved", { error: "gh api 502" });
   const found = listPRs("approved").find((p) => p.id === item.id);
   assert.equal(found?.error, "gh api 502");
+});
+
+// --- PATH TRAVERSAL (LLM-supplied change paths are hostile input) ----------
+
+test("safeChangePath accepts an in-repo path", () => {
+  const full = safeChangePath("/tmp/clone", "docs/README.md");
+  assert.equal(full, "/tmp/clone/docs/README.md");
+});
+
+test("safeChangePath rejects a parent-escape (../) path", () => {
+  assert.throws(() => safeChangePath("/tmp/clone", "../../../../etc/passwd"), /escapes the repo/);
+});
+
+test("safeChangePath rejects an absolute path", () => {
+  assert.throws(() => safeChangePath("/tmp/clone", "/etc/passwd"), /escapes the repo/);
+});
+
+test("safeChangePath rejects a sibling-prefix path (no naive startsWith bypass)", () => {
+  // "/tmp/clone-evil" shares the "/tmp/clone" prefix but is NOT inside it.
+  assert.throws(() => safeChangePath("/tmp/clone", "../clone-evil/x"), /escapes the repo/);
+});
+
+test("safeChangePath rejects writes into .git", () => {
+  assert.throws(() => safeChangePath("/tmp/clone", ".git/config"), /targets .git/);
+  assert.throws(() => safeChangePath("/tmp/clone", ".git"), /targets .git/);
+});
+
+// --- CLI status parsing (no `as any` cast on the boundary) -----------------
+
+test("parsePRStatus narrows valid statuses and rejects junk", () => {
+  assert.equal(parsePRStatus("pending"), "pending");
+  assert.equal(parsePRStatus("opened"), "opened");
+  assert.equal(parsePRStatus(undefined), undefined);
+  assert.equal(parsePRStatus("garbage"), undefined);
 });

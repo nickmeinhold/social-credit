@@ -23,7 +23,7 @@
 import type { Config } from "../config.js";
 import type { Agent } from "./agent.js";
 import { displayName } from "./persona.js";
-import { isRepoAllowed, type PRChange, type PRItem } from "../bridge/prs.js";
+import { isRepoAllowed, safeChangePath, type PRChange, type PRItem } from "../bridge/prs.js";
 
 /** The disclosure footer stamped on every PR body. GitHub's abuse policy and
  *  basic honesty both demand a human reviewer know an AI agent authored this. */
@@ -147,7 +147,9 @@ export async function openPR(item: PRItem, cfg: Config): Promise<string> {
   await run("git", ["checkout", "-b", item.branch], opts);
 
   for (const c of item.changes) {
-    const full = join(dir, c.path);
+    // c.path is parsed LLM output — hostile input. safeChangePath refuses any
+    // path that escapes the clone dir or targets .git (arbitrary-write guard).
+    const full = safeChangePath(dir, c.path);
     mkdirSync(dirname(full), { recursive: true });
     writeFileSync(full, c.content);
   }
