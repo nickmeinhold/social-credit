@@ -75,6 +75,14 @@ export interface Config {
     claudeMax?: ProviderConfig;
     gemini?: ProviderConfig;
     github?: ProviderConfig;
+    /**
+     * Upstream-owner LLM credits, used "on request". The owner runs an
+     * OpenAI-compatible gateway holding their real keys and issues a per-fork
+     * REVOCABLE token. A fork points `baseURL` at that gateway and supplies the
+     * granted token via the `PROXY_TOKEN` secret (env only — never committed).
+     * Disabled by default: a fork must be explicitly granted access and opt in.
+     */
+    gateway?: ProviderConfig;
   };
   /** How often the daemon polls RSS sources, in ms (daemon mode only). */
   pollIntervalMs: number;

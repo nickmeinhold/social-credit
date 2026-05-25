@@ -127,6 +127,39 @@ program
   });
 
 program
+  .command("request-credits")
+  .description("Print how to request the upstream owner's LLM credits (on request, revocable)")
+  .action(() => {
+    // Best-effort upstream slug: the first circle member carrying a `repo`,
+    // else the canonical upstream. We don't hard-fail if config is absent.
+    let repo = "nickmeinhold/social-credit";
+    try {
+      const cfg = loadConfig();
+      const withRepo = cfg.circle.find((c) => c.repo);
+      if (withRepo?.repo) repo = withRepo.repo;
+    } catch {
+      // No config yet — fall back to the canonical upstream slug.
+    }
+    const url = `https://github.com/${repo}/issues/new?template=request-owner-llm-credits.md`;
+    console.log(
+      [
+        "Borrowing the upstream owner's LLM credits is on-request and revocable.",
+        "",
+        "1. Open an issue on the upstream repo using the request template:",
+        `   ${url}`,
+        "2. The owner grants you a token OUT-OF-BAND (never in the issue).",
+        "3. In YOUR fork: add it as the PROXY_TOKEN secret, set",
+        "   providers.gateway.enabled: true, and confirm baseURL matches the",
+        "   gateway the owner gave you.",
+        "",
+        "The token is read from the PROXY_TOKEN env only — never put it in config",
+        "or a commit. Without a grant your fork falls back to its own free",
+        "providers (GitHub Models is free, zero secrets). See FORKING.md.",
+      ].join("\n"),
+    );
+  });
+
+program
   .command("swarm:status")
   .description("Show each agent's evolving signature")
   .action(() => {
