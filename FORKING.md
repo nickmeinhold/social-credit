@@ -102,10 +102,19 @@ gateway and authenticates with that token.
   never written to config and must never be committed.
 - The `gateway` provider joins the router **only if** it's enabled AND a
   `baseURL` is configured AND `PROXY_TOKEN` is set. Miss any one and it's simply
-  skipped — your fork falls back to its own free providers (GitHub Models is free
-  and needs zero secrets), so a revoked or absent grant never hard-fails a run.
-- The owner can **revoke** at any time by invalidating the token at the gateway;
-  your next tick just drops back to your own providers.
+  skipped — your fork runs on its own free providers (GitHub Models is free and
+  needs zero secrets). So an **absent** grant never hard-fails a run.
+- **Revocation, precisely.** The owner revokes by invalidating the token at the
+  gateway. Until you also **remove `PROXY_TOKEN`** from your fork's secrets, the
+  gateway provider stays in the router and its calls will fail that tick (the
+  router does not yet fail over to another provider on an auth error — see the
+  follow-up task). So revocation is two steps: owner invalidates server-side,
+  *and* you unset the secret (or set `providers.gateway.enabled: false`). Once
+  the token is gone, you cleanly fall back to your own free providers.
+- The token authenticates as `Authorization: Bearer` to whatever `baseURL` you
+  configure — so **a change to `providers.gateway.baseURL` is a token-security
+  change** (it sends the granted token to a new endpoint). Treat baseURL edits
+  as security-relevant in review.
 
 ## Gotchas (read these)
 

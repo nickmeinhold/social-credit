@@ -1,10 +1,10 @@
 /**
  * Config loading + validation.
  *
- * Config lives in `social-credit.config.jsonc` (gitignored — it holds tokens).
- * We support `${ENV_VAR}` interpolation so secrets can live in the environment
- * instead of on disk. JSONC is parsed by stripping comments then JSON.parse —
- * good enough for a hand-edited config and avoids a dependency.
+ * Config lives in `social-credit.config.jsonc`, which is COMMITTED and holds NO
+ * secrets — every credential is a `${ENV_VAR}` reference resolved from the
+ * environment (GitHub secrets), never a literal. JSONC is parsed by stripping
+ * comments then JSON.parse — good enough for a hand-edited config, no dependency.
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

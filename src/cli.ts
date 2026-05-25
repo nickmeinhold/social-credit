@@ -17,6 +17,7 @@ import { Command } from "commander";
 import { writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { execSync } from "node:child_process";
 import { loadConfig } from "./config.js";
 import { Daemon } from "./daemon.js";
 import { buildAdapters } from "./platforms/index.js";
@@ -130,15 +131,19 @@ program
   .command("request-credits")
   .description("Print how to request the upstream owner's LLM credits (on request, revocable)")
   .action(() => {
-    // Best-effort upstream slug: the first circle member carrying a `repo`,
-    // else the canonical upstream. We don't hard-fail if config is absent.
+    // The upstream is the fork's PARENT repo — derive it from GitHub via gh.
+    // (Circle `repo` fields are for the PR feature, NOT the upstream
+    // relationship, so they'd point at the wrong repo.) Fall back to the
+    // canonical slug if gh/network is unavailable or this isn't a fork.
     let repo = "nickmeinhold/social-credit";
     try {
-      const cfg = loadConfig();
-      const withRepo = cfg.circle.find((c) => c.repo);
-      if (withRepo?.repo) repo = withRepo.repo;
+      const parent = execSync("gh repo view --json parent -q .parent.nameWithOwner", {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (parent) repo = parent;
     } catch {
-      // No config yet — fall back to the canonical upstream slug.
+      // Not in a repo / gh unavailable / not a fork — keep the canonical slug.
     }
     const url = `https://github.com/${repo}/issues/new?template=request-owner-llm-credits.md`;
     console.log(

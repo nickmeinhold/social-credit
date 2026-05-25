@@ -52,6 +52,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Owner's LLM credits via gateway (#51) — unset = gateway skipped.
+          PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
         run: node dist/cli.js reflect
 
       - name: Save swarm state
