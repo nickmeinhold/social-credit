@@ -137,6 +137,22 @@ Then, on a new line, a fenced \`\`\`json block:
     });
   }
 
+  /**
+   * Reason over arbitrary context and return the raw model reply. Used by the
+   * PR proposer (src/swarm/proposer.ts): it feeds in a repo's surface and asks
+   * for a strict-JSON change proposal. Kept generic so the proposer owns the
+   * prompt while the Agent owns the persona + provider preference.
+   */
+  async reason(prompt: string, opts: { temperature?: number; maxTokens?: number } = {}): Promise<string> {
+    return this.llm.complete({
+      system: this.system(),
+      messages: [{ role: "user", content: prompt }],
+      temperature: opts.temperature ?? 0.5,
+      maxTokens: opts.maxTokens ?? 1500,
+      preferProvider: this.prefer,
+    });
+  }
+
   /** Speak at another member's naming ceremony, from what you know of them. */
   async speakAtCeremony(candidate: string, whatIKnow: string): Promise<string> {
     const text = await this.llm.complete({

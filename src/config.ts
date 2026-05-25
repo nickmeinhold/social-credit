@@ -67,6 +67,28 @@ export interface Config {
     /** Hold swarm-generated original content in the queue for manual approval. */
     requireApprovalForSwarmContent: boolean;
   };
+  /**
+   * Agents reading repos and proposing pull requests. INERT by default —
+   * autonomous PRs across arbitrary repos is exactly the spam pattern that
+   * flags the owner's GitHub account, so this stays off unless explicitly
+   * enabled and is gated two ways (see `src/bridge/prs.ts`).
+   */
+  agentPRs: {
+    /** Master switch. When false, no PR is ever enqueued or opened. */
+    enabled: boolean;
+    /**
+     * Owner-designated repos ("owner/name") agents may target, IN ADDITION to
+     * every circle member's `repo`. This is the only way to widen the target
+     * set beyond the circle — it is never an open firehose.
+     */
+    allowlist: string[];
+    /**
+     * When true, an allowlisted proposal is born "approved" and the next flush
+     * opens it without a manual approve. Relaxes the approval gate ONLY; it
+     * never widens which repos may be targeted.
+     */
+    autoOpen: boolean;
+  };
   /** LLM providers. Keys come from env/secrets, not from here. */
   providers: {
     /** Claude via API key (per-token billing). */
@@ -126,6 +148,12 @@ export function loadConfig(path = "social-credit.config.jsonc"): Config {
       autoPostOwnContent: false,
       requireApprovalForSwarmContent: true,
       ...parsed.bridge,
+    },
+    agentPRs: {
+      enabled: false,
+      allowlist: [],
+      autoOpen: false,
+      ...parsed.agentPRs,
     },
     providers: parsed.providers ?? {},
     ownerName: parsed.ownerName ?? "your human",

@@ -32,6 +32,9 @@ import { dreamOne } from "./swarm/dream.js";
 import { maybeHoldCeremony, inauguralCeremony } from "./swarm/ceremony.js";
 import { dataPath } from "./paths.js";
 import { enqueue, list, setStatus } from "./bridge/queue.js";
+import { enqueuePR, listPRs, setPRStatus, allowedRepos } from "./bridge/prs.js";
+import { proposePR, openPR } from "./swarm/proposer.js";
+import { displayName } from "./swarm/persona.js";
 
 export class Daemon {
   private adapters: PlatformAdapter[];
@@ -100,6 +103,56 @@ export class Daemon {
         }
       }
       if (results.length) setStatus(item.id, "posted", results);
+    }
+  }
+
+  /**
+   * One agent-PR round. INERT unless `cfg.agentPRs.enabled`. Each agent reads
+   * an allowlisted repo (circle-member repos + owner-designated), reasons about
+   * one small change, and enqueues a proposal. The proposal is born "pending"
+   * (approval-gated) unless `agentPRs.autoOpen` is set — and even then only
+   * within the allowlist, enforced by enqueuePR. Nothing is opened here; that's
+   * flushPRs, after a human (or autoOpen) approves.
+   */
+  async prsTick(): Promise<void> {
+    if (!this.cfg.agentPRs?.enabled || this.agents.length === 0) return;
+    const targets = [...allowedRepos(this.cfg)];
+    if (!targets.length) {
+      console.log("[prs] agentPRs enabled but the allowlist is empty — nothing to propose against");
+      return;
+    }
+    let proposed = 0;
+    for (const agent of this.agents) {
+      // Round-robin a target so we don't hammer one repo every tick. One
+      // proposal per agent per tick keeps the outward footprint conservative.
+      const repo = targets[Math.floor(Math.random() * targets.length)];
+      await this.safe(`prs:${displayName(agent.persona)}`, async () => {
+        const draft = await proposePR(agent, repo, this.cfg);
+        if (!draft) return;
+        const item = enqueuePR(draft, this.cfg, this.cfg.agentPRs.autoOpen);
+        proposed++;
+        console.log(`[prs] ${item.fromAgent} proposed ${item.id} -> ${item.repo} (${item.status})`);
+      });
+    }
+    console.log(`[prs] round done — ${proposed} proposal(s)`);
+  }
+
+  /** Open every approved-but-unopened PR for real. The terminal `opened` guard
+   *  in prs.ts means a transient failure can be retried but a success can't
+   *  re-fire a duplicate PR against a real repo. */
+  async flushPRs(): Promise<void> {
+    if (!this.cfg.agentPRs?.enabled) return;
+    for (const item of listPRs("approved")) {
+      try {
+        const url = await openPR(item, this.cfg);
+        // Clear any stale error from a prior failed-then-retried open.
+        setPRStatus(item.id, "opened", { openedAt: new Date().toISOString(), prUrl: url, error: undefined });
+        console.log(`[prs] ${item.id} -> opened ${url}`);
+      } catch (err) {
+        // Stay "approved" so a later flush can retry; record why.
+        setPRStatus(item.id, "approved", { error: (err as Error).message });
+        console.error(`[prs] ${item.id} -> open FAILED:`, (err as Error).message);
+      }
     }
   }
 

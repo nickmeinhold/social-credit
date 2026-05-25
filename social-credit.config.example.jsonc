@@ -84,6 +84,27 @@
     "requireApprovalForSwarmContent": true
   },
 
+  // Agents reading repos and proposing pull requests. INERT by default, and
+  // double-gated when on: (1) an ALLOWLIST — agents may only target a circle
+  // member's `repo` (above) PLUS the owner-designated repos listed here; an
+  // off-allowlist repo is rejected, there is never an open firehose. (2) an
+  // APPROVAL queue — every proposal lands "pending" and you approve it
+  // (`prs:approve <id>`) before `prs:flush` opens it for real. Autonomous PRs
+  // across arbitrary repos is exactly the spam pattern that flags your GitHub
+  // account; keep this tight. CLI: prs:tick / prs:list / prs:approve /
+  // prs:reject / prs:flush.
+  "agentPRs": {
+    // Master switch. Leave false unless you actively want agents proposing PRs.
+    "enabled": false,
+    // Owner-designated repos ("owner/name") agents may target, ON TOP of every
+    // circle member's `repo`. The ONLY way to widen beyond the circle.
+    "allowlist": [],
+    // When true, an allowlisted proposal is born "approved" and the next
+    // prs:flush opens it without a manual approve. Relaxes the approval gate
+    // ONLY — it never widens which repos may be targeted.
+    "autoOpen": false
+  },
+
   // LLM providers. API KEYS ARE NOT HERE — they come from GitHub secrets / env.
   // Each `dailyCap` is set just under that provider's free tier; the budget
   // router spreads calls across enabled providers by remaining headroom.
