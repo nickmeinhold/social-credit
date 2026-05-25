@@ -23,6 +23,7 @@ import { buildAdapters } from "./platforms/index.js";
 import { loadAllPersonas } from "./swarm/store.js";
 import { dominantDiscipline, displayName } from "./swarm/persona.js";
 import { list, setStatus, enqueue } from "./bridge/queue.js";
+import { listPRs, setPRStatus } from "./bridge/prs.js";
 
 const program = new Command();
 program.name("social-credit").description("Auto-syndicate your own content, powered by an evolving agent swarm.");
@@ -165,6 +166,50 @@ program
   .action((id: string) => {
     setStatus(id, "rejected");
     console.log(`Rejected ${id}.`);
+  });
+
+program
+  .command("prs:tick")
+  .description("Agents read allowlisted repos and propose PRs into the approval queue (opens nothing)")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.prsTick();
+  });
+
+program
+  .command("prs:list [status]")
+  .description("List proposed PRs (optionally by status: pending|approved|opened|rejected)")
+  .action((status?: string) => {
+    for (const p of listPRs(status as any)) {
+      const where = p.prUrl ? ` ${p.prUrl}` : "";
+      console.log(
+        `${p.id}  ${p.status.padEnd(9)} ${p.fromAgent.padEnd(10)} ${p.repo.padEnd(24)} ${p.title.slice(0, 50)}${where}`,
+      );
+    }
+  });
+
+program
+  .command("prs:approve <id>")
+  .description("Approve a pending PR so it opens on the next prs:flush")
+  .action((id: string) => {
+    setPRStatus(id, "approved");
+    console.log(`Approved ${id}.`);
+  });
+
+program
+  .command("prs:reject <id>")
+  .description("Reject a pending PR (terminal)")
+  .action((id: string) => {
+    setPRStatus(id, "rejected");
+    console.log(`Rejected ${id}.`);
+  });
+
+program
+  .command("prs:flush")
+  .description("Open every approved PR for real (branch + push + gh pr create)")
+  .action(async () => {
+    const d = new Daemon(loadConfig());
+    await d.flushPRs();
   });
 
 program.parseAsync();
