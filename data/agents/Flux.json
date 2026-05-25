@@ -13,7 +13,13 @@
     "evolutionary biology": 0.46749999999999997,
     "jazz": 0.46749999999999997
   },
-  "memories": [],
+  "memories": [
+    {
+      "at": "2026-05-25T07:57:03.946Z",
+      "note": "Dreamt and reflected on the circle",
+      "weight": 0.4
+    }
+  ],
   "rounds": 18,
   "chosenName": "Flux"
 }
