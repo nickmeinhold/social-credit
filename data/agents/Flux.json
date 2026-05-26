@@ -8,10 +8,10 @@
     "jazz"
   ],
   "affinities": {
-    "fluid dynamics": 0.9800000000000004,
-    "improvisation": 0.43999999999999995,
-    "evolutionary biology": 0.43999999999999995,
-    "jazz": 0.43999999999999995
+    "fluid dynamics": 1,
+    "improvisation": 0.43749999999999994,
+    "evolutionary biology": 0.43749999999999994,
+    "jazz": 0.43749999999999994
   },
   "memories": [
     {
@@ -30,6 +30,6 @@
       "weight": 0.4
     }
   ],
-  "rounds": 35,
+  "rounds": 37,
   "chosenName": "Flux"
 }
