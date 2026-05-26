@@ -4,8 +4,13 @@
   "kind": "human",
   "email": "nick@example.com",
   "repo": "nickmeinhold/social-credit",
-  "notes": [],
-  "sentiment": 0,
-  "topics": [],
-  "interactions": 0
+  "notes": [
+    "Expressing a quieter presence lately, potentially reflecting on unshared ideas."
+  ],
+  "sentiment": 0.1,
+  "topics": [
+    "communication",
+    "silence"
+  ],
+  "interactions": 1
 }

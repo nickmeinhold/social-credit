@@ -4,8 +4,14 @@
   "kind": "human",
   "email": "nick@example.com",
   "repo": "nickmeinhold/social-credit",
-  "notes": [],
-  "sentiment": 0,
-  "topics": [],
-  "interactions": 0
+  "notes": [
+    "The quiet suggests something brewing beneath the surface; intrigued by its implications."
+  ],
+  "sentiment": 0.2,
+  "topics": [
+    "silence",
+    "reflection",
+    "engagement"
+  ],
+  "interactions": 1
 }
