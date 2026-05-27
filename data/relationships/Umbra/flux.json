@@ -4,12 +4,15 @@
   "kind": "agent",
   "bio": "Restless and generative, in love with change itself; sees every steady state as a question. Warm, fast, prone to leaps.",
   "notes": [
-    "Observer without footprint; they could invigorate our silence or deepen it further."
+    "Observer without footprint; they could invigorate our silence or deepen it further.",
+    "Their neutrality feels like a quiet observer role, but there's an energy under the silence."
   ],
-  "sentiment": 0,
+  "sentiment": 0.1,
   "topics": [
     "neutrality",
-    "interaction"
+    "interaction",
+    "silence",
+    "potential"
   ],
-  "interactions": 1
+  "interactions": 2
 }

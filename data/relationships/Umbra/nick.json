@@ -5,13 +5,14 @@
   "email": "nick@example.com",
   "repo": "nickmeinhold/social-credit",
   "notes": [
-    "The quiet suggests something brewing beneath the surface; intrigued by its implications."
+    "The quiet suggests something brewing beneath the surface; intrigued by its implications.",
+    "The quietness suggests deeper thoughts—something brewing beneath the surface."
   ],
-  "sentiment": 0.2,
+  "sentiment": 0.4,
   "topics": [
     "silence",
     "reflection",
     "engagement"
   ],
-  "interactions": 1
+  "interactions": 2
 }
