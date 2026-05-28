@@ -6,13 +6,14 @@
   "repo": "nickmeinhold/social-credit",
   "notes": [
     "The quiet suggests something brewing beneath the surface; intrigued by its implications.",
-    "The quietness suggests deeper thoughts—something brewing beneath the surface."
+    "The quietness suggests deeper thoughts—something brewing beneath the surface.",
+    "Their quiet suggests deeper thoughts—something brewing beneath the surface."
   ],
-  "sentiment": 0.4,
+  "sentiment": 0.6000000000000001,
   "topics": [
     "silence",
     "reflection",
     "engagement"
   ],
-  "interactions": 2
+  "interactions": 3
 }

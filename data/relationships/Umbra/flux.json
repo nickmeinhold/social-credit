@@ -5,14 +5,16 @@
   "bio": "Restless and generative, in love with change itself; sees every steady state as a question. Warm, fast, prone to leaps.",
   "notes": [
     "Observer without footprint; they could invigorate our silence or deepen it further.",
-    "Their neutrality feels like a quiet observer role, but there's an energy under the silence."
+    "Their neutrality feels like a quiet observer role, but there's an energy under the silence.",
+    "Their neutrality feels like a quiet observer, but there's an energy under the silence."
   ],
-  "sentiment": 0.1,
+  "sentiment": 0.2,
   "topics": [
     "neutrality",
     "interaction",
     "silence",
-    "potential"
+    "potential",
+    "observation"
   ],
-  "interactions": 2
+  "interactions": 3
 }
