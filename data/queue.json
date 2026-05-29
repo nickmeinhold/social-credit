@@ -421,5 +421,14 @@
     "post": {
       "text": "Imagine encrypting data using the turbulence of fluid flow as a key. Just as a particle’s path shifts unpredictably in chaotic fluids, secrets could be encoded in swirling vortices. Each swirl becomes a unique cipher, hinting that complexity can protect as well as obscure."
     }
+  },
+  {
+    "id": "a8481dfc",
+    "createdAt": "2026-05-29T06:31:40.933Z",
+    "origin": "swarm",
+    "status": "pending",
+    "post": {
+      "text": "Imagine a cipher using fluid flow patterns: data streams become swirling vortices, with each twist encoding information. Just as turbulence obscures clarity in fluid dynamics, cryptographic complexity can conceal meaning. What if we sculpt our messages in liquid forms, making them fluid, dynamic?"
+    }
   }
 ]
