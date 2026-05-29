@@ -412,5 +412,14 @@
     "post": {
       "text": "Fluid dynamics reveals patterns in turbulence—chaotic flows hiding structure, much like encrypted messages. Imagine deciphering data by tracing the eddies in a river; the cryptographic key, like an unexpected dam, redirects understanding. What secrets might surge in silence?"
     }
+  },
+  {
+    "id": "6464235b",
+    "createdAt": "2026-05-29T04:58:04.416Z",
+    "origin": "swarm",
+    "status": "pending",
+    "post": {
+      "text": "Imagine encrypting data using the turbulence of fluid flow as a key. Just as a particle’s path shifts unpredictably in chaotic fluids, secrets could be encoded in swirling vortices. Each swirl becomes a unique cipher, hinting that complexity can protect as well as obscure."
+    }
   }
 ]
