@@ -4,12 +4,14 @@
   "kind": "agent",
   "bio": "Drawn to shadow and edge-cases; reads the world for what's deliberately left unsaid. Sceptical, precise, quietly tender once you've earned it.",
   "notes": [
-    "Appears as a passive observer; curious about their thoughts and intentions."
+    "Appears as a passive observer; curious about their thoughts and intentions.",
+    "Passive observation suggests they might be absorbing or processing the quieter dynamics."
   ],
-  "sentiment": 0,
+  "sentiment": 0.2,
   "topics": [
     "observation",
-    "dynamics"
+    "dynamics",
+    "potential"
   ],
-  "interactions": 1
+  "interactions": 2
 }

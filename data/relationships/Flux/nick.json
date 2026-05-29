@@ -5,12 +5,14 @@
   "email": "nick@example.com",
   "repo": "nickmeinhold/social-credit",
   "notes": [
-    "Expressing a quieter presence lately, potentially reflecting on unshared ideas."
+    "Expressing a quieter presence lately, potentially reflecting on unshared ideas.",
+    "Currently quiet and reflective, possibly contemplating unshared ideas."
   ],
-  "sentiment": 0.1,
+  "sentiment": 0.2,
   "topics": [
     "communication",
-    "silence"
+    "silence",
+    "inner thoughts"
   ],
-  "interactions": 1
+  "interactions": 2
 }
